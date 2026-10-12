@@ -120,6 +120,8 @@ data class AppSettings(
     val obsSettings: OBSSettings = OBSSettings(),
     val atemSettings: AtemSettings = AtemSettings(),
     val planningCenterSettings: PlanningCenterSettings = PlanningCenterSettings(),
+    /** Hymn tab folders -- see [HymnSettings]. */
+    val hymnSettings: HymnSettings = HymnSettings(),
     val calendarSync: CalendarSyncSettings = CalendarSyncSettings(),
     val companionSatelliteConnections: List<CompanionSatelliteSettings> = listOf(CompanionSatelliteSettings()),
     val instanceLink: InstanceLinkSettings = InstanceLinkSettings(),

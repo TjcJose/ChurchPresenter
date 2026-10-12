@@ -333,6 +333,7 @@ private fun ComposeUiTest.selectTab(tab: Tabs) {
 private fun tabLabel(tab: Tabs) = when (tab) {
     Tabs.BIBLE -> "Bible"
     Tabs.SONGS -> "Songs"
+    Tabs.HYMN -> "Hymn"
     Tabs.PICTURES -> "Pictures"
     Tabs.PRESENTATION -> "Presentation"
     Tabs.MEDIA -> "Media"
@@ -354,7 +355,7 @@ private fun serviceSchedule(actions: ScheduleActions) {
     actions.addSong(320, "Come Thou Fount Of Every Blessing", "Hymnal", "song-320")
     actions.addSong(12, "Amazing Grace", "Hymnal", "song-12")
     actions.addBibleVerse("Psalms", 23, 1, "The LORD is my shepherd; I shall not want.", "1-3", 19)
-    actions.addPresentation(File(LIBRARY, "Decks/Sermon.pdf").absolutePath, "Sermon", SERMON_SLIDES.size, "pdf")
+    actions.addPresentation(File(LIBRARY, "Decks/Sermon.pdf").absolutePath, "Sermon", SERMON_SLIDES.size, "pdf", "")
     actions.addSong(455, "It Is Well With My Soul", "Hymnal", "song-455")
     actions.addPicture(File(LIBRARY, "Gallery").absolutePath, "Gallery", PHOTOS.size)
     actions.addAnnouncement(

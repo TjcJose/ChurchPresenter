@@ -190,42 +190,7 @@ internal fun PresentationTabScope.PresentationLiveEffects(viewModel: Presentatio
         }
     }
 
-    LaunchedEffect(viewModel.selectedSlideIndex, viewModel.slideFiles.size) {
-        val idx = viewModel.selectedSlideIndex
-        val enterAtLastStep = viewModel.consumeEnteredViaPreviousSlide()
-        val anyScreenOnPresentation = presenterManager?.isLive(Presenting.PRESENTATION) == true ||
-            presenterManager?.presentationCued == true ||
-            presenterManager?.screenLocks?.value?.values?.any { it == Presenting.PRESENTATION } == true
-        if (anyScreenOnPresentation && viewModel.slideFiles.isNotEmpty()) {
-            val bitmap = viewModel.slideFiles.getOrNull(idx)?.let { f ->
-                withContext(Dispatchers.IO) {
-                    try {
-                        org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-            }
-            val nextFile = viewModel.nextShownSlideIndex(idx)?.let { viewModel.slideFiles.getOrNull(it) }
-            val nextBitmap = nextFile?.let { f ->
-                withContext(Dispatchers.IO) {
-                    try {
-                        org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-            }
-            presenterManager.setSelectedSlide(bitmap)
-            presenterManager.setLiveSlide(viewModel.selectedPresentation?.name, idx)
-            presenterManager.setNextSlide(nextBitmap)
-            presenterManager.setPresenterNotes(viewModel.slideNotes.getOrElse(idx) { "" })
-            // Animated playback: point the player at the new slide (no-op → static path
-            // when the slide has no timeline or the deck is remote/unparsed).
-            viewModel.deck?.let { presenterManager.presentationShowSlide(it, idx, enterAtLastStep) }
-                ?: presenterManager.clearPresentationPlayback()
-        }
-    }
+    PresentationLiveSlideEffect(viewModel, presenterManager)
 
     // Hiding or showing a slide can change which one comes next, so the stage monitor's "next"
     // is refreshed -- and only that. Re-pushing the live slide here restarted its animation.
@@ -250,5 +215,55 @@ internal fun PresentationTabScope.PresentationLiveEffects(viewModel: Presentatio
     LaunchedEffect(viewModel.animationType, viewModel.transitionDuration) {
         presenterManager?.setAnimationType(viewModel.animationType)
         presenterManager?.setTransitionDuration(viewModel.transitionDuration.toInt())
+    }
+}
+
+/**
+ * Keeps a live Presentation output on the slide the viewmodel has selected.
+ *
+ * The Presentation tab runs this as one of its [PresentationLiveEffects]; the Hymn tab drives the
+ * same [PresentationViewModel] and output and runs it on its own, so its arrow keys page the
+ * projected slide rather than only the thumbnails. Nothing is pushed until a screen is actually on
+ * the presentation — live, cued, or locked to it — so selecting a slide before going live stays
+ * silent, and the viewmodel's play/pause, hidden-slide and animation effects remain the tab's own.
+ */
+@Composable
+fun PresentationLiveSlideEffect(viewModel: PresentationViewModel, presenterManager: SlidesOutput?) {
+    LaunchedEffect(viewModel.selectedSlideIndex, viewModel.slideFiles.size) {
+        val manager = presenterManager ?: return@LaunchedEffect
+        val idx = viewModel.selectedSlideIndex
+        val enterAtLastStep = viewModel.consumeEnteredViaPreviousSlide()
+        val onPresentation = manager.isLive(Presenting.PRESENTATION) ||
+            manager.presentationCued ||
+            manager.screenLocks?.value?.values?.any { it == Presenting.PRESENTATION } == true
+        if (onPresentation && viewModel.slideFiles.isNotEmpty()) {
+            val bitmap = viewModel.slideFiles.getOrNull(idx)?.let { f ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
+            val nextFile = viewModel.nextShownSlideIndex(idx)?.let { viewModel.slideFiles.getOrNull(it) }
+            val nextBitmap = nextFile?.let { f ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+            }
+            manager.setSelectedSlide(bitmap)
+            manager.setLiveSlide(viewModel.selectedPresentation?.name, idx)
+            manager.setNextSlide(nextBitmap)
+            manager.setPresenterNotes(viewModel.slideNotes.getOrElse(idx) { "" })
+            // Animated playback: point the player at the new slide (no-op → static path
+            // when the slide has no timeline or the deck is remote/unparsed).
+            viewModel.deck?.let { manager.presentationShowSlide(it, idx, enterAtLastStep) }
+                ?: manager.clearPresentationPlayback()
+        }
     }
 }

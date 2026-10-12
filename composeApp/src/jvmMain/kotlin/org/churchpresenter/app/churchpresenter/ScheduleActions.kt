@@ -21,8 +21,9 @@ data class ScheduleActions(
         bookName: String, chapter: Int, verseNumber: Int, verseText: String, verseRange: String, bookId: Int,
     ) -> Unit = { _, _, _, _, _, _ -> },
     val addPicture: (folderPath: String, folderName: String, imageCount: Int) -> Unit = { _, _, _ -> },
-    val addPresentation: (filePath: String, fileName: String, slideCount: Int, fileType: String) -> Unit =
-        { _, _, _, _ -> },
+    val addPresentation: (
+        filePath: String, fileName: String, slideCount: Int, fileType: String, hymnNumber: String,
+    ) -> Unit = { _, _, _, _, _ -> },
     val addMedia: (mediaUrl: String, mediaTitle: String, mediaType: String, subtitleUrl: String) -> Unit =
         { _, _, _, _ -> },
     val addScene: (sceneId: String, sceneName: String) -> Unit = { _, _ -> },

@@ -220,7 +220,8 @@ internal fun addScheduleItem(
             item.filePath,
             item.fileName,
             item.slideCount,
-            item.fileType
+            item.fileType,
+            item.hymnNumber
         )
 
         is ScheduleItem.PictureItem -> scheduleActions.addPicture(

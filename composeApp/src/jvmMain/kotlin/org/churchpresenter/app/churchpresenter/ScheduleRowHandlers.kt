@@ -39,8 +39,9 @@ internal class ScheduleRowHandlers(
         state.select(item, ScheduleSongAction.GO_LIVE)
     }
 
+    /** Puts a schedule deck on screen: the Presentation tab's, or the Hymn tab's for a hymn row. */
     fun presentPresentation(item: ScheduleItem.PresentationItem) {
-        selectTab(Tabs.PRESENTATION)
+        selectTab(tabForScheduleItem(item) ?: Tabs.PRESENTATION)
         state.select(item)
         presenting(Presenting.PRESENTATION)
     }

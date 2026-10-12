@@ -42,6 +42,9 @@ internal class MainDesktopState(
     var selectedPictureItemVersion by mutableStateOf(0)
     var selectedPresentationItem by mutableStateOf<ScheduleItem.PresentationItem?>(null)
     var selectedPresentationItemVersion by mutableStateOf(0)
+    /** A hymn row the Hymn tab is to bring back on screen — a schedule presentation with a hymn number. */
+    var selectedHymnItem by mutableStateOf<ScheduleItem.PresentationItem?>(null)
+    var selectedHymnItemVersion by mutableStateOf(0)
     var selectedMediaItem by mutableStateOf<ScheduleItem.MediaItem?>(null)
     var selectedMediaItemVersion by mutableStateOf(0)
     var selectedLowerThirdItem by mutableStateOf<ScheduleItem.LowerThirdItem?>(null)
@@ -91,8 +94,15 @@ internal class MainDesktopState(
             }
             is ScheduleItem.PictureItem -> { selectedPictureItem = item; selectedPictureItemVersion++ }
             is ScheduleItem.PresentationItem -> {
-                selectedPresentationItem = item
-                selectedPresentationItemVersion++
+                // A hymn row goes back to the Hymn tab, on the hymn it names; the Presentation tab
+                // never loads it, so the two tabs keep their own decks.
+                if (item.isHymn) {
+                    selectedHymnItem = item
+                    selectedHymnItemVersion++
+                } else {
+                    selectedPresentationItem = item
+                    selectedPresentationItemVersion++
+                }
             }
             is ScheduleItem.MediaItem -> { selectedMediaItem = item; selectedMediaItemVersion++ }
             is ScheduleItem.LowerThirdItem -> { selectedLowerThirdItem = item; selectedLowerThirdItemVersion++ }

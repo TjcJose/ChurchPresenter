@@ -67,7 +67,9 @@ internal fun tabForScheduleItem(item: ScheduleItem): Tabs? = when (item) {
     is ScheduleItem.BibleVerseItem -> Tabs.BIBLE
     is ScheduleItem.LabelItem -> null
     is ScheduleItem.PictureItem -> Tabs.PICTURES
-    is ScheduleItem.PresentationItem -> Tabs.PRESENTATION
+    // A hymn's deck airs on the same output the Presentation tab uses, but a row the Hymn tab put
+    // in the schedule opens back in the Hymn tab, on the hymn it names.
+    is ScheduleItem.PresentationItem -> if (item.isHymn) Tabs.HYMN else Tabs.PRESENTATION
     is ScheduleItem.MediaItem -> Tabs.MEDIA
     is ScheduleItem.LowerThirdItem -> Tabs.LOWER_THIRD
     is ScheduleItem.AnnouncementItem -> Tabs.ANNOUNCEMENTS

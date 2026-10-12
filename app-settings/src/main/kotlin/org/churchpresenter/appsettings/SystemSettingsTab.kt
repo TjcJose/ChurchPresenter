@@ -151,12 +151,19 @@ fun SystemSettingsTab(
             // Wick's card is there once Wick is: in dev mode, or after Help → Show Helper.
             val wickAvailable = isWickAvailable(LocalSettingsDevMode.current, settings.helper)
             val storage: @Composable () -> Unit = {
-                SystemStorageCard(
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    fileManager = fileManager,
-                    onSetAll = setAllDirectories
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    SystemStorageCard(
+                        settings = settings,
+                        onSettingsChange = onSettingsChange,
+                        fileManager = fileManager,
+                        onSetAll = setAllDirectories
+                    )
+                    SystemHymnCard(
+                        settings = settings,
+                        onSettingsChange = onSettingsChange,
+                        fileManager = fileManager,
+                    )
+                }
             }
             if (sideBySide) {
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {

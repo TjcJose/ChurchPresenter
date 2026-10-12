@@ -96,6 +96,12 @@ internal fun goesForward(shortcuts: ShortcutMap, event: KeyEvent): Boolean =
     shortcuts.matches(ShortcutAction.PRESENTATION_NEXT, event) ||
         shortcuts.matches(ShortcutAction.CLICKER_NEXT, event)
 
+/** [goesBack] for a tab outside `:slides` (the Hymn tab), so the binding lives in one place. */
+fun presentationGoesBack(shortcuts: ShortcutMap, event: KeyEvent): Boolean = goesBack(shortcuts, event)
+
+/** [goesForward] for a tab outside `:slides`. */
+fun presentationGoesForward(shortcuts: ShortcutMap, event: KeyEvent): Boolean = goesForward(shortcuts, event)
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun PresentationTab(
@@ -280,7 +286,7 @@ internal fun VlcMissingBanner(detail: String, onDismiss: () -> Unit, modifier: M
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun SlideThumbnail(
+fun SlideThumbnail(
     slide: ImageBitmap?,
     slideNumber: Int,
     buildCount: Int = 0,

@@ -32,7 +32,13 @@ internal fun executeProjectItem(
         }
 
         is ScheduleItem.PresentationItem -> {
-            scheduleActions.addPresentation(item.filePath, item.fileName, item.slideCount, item.fileType)
+            scheduleActions.addPresentation(
+                item.filePath,
+                item.fileName,
+                item.slideCount,
+                item.fileType,
+                item.hymnNumber
+            )
             presenterManager.setPresentingMode(Presenting.PRESENTATION)
             presenterManager.setShowPresenterWindow(true)
         }

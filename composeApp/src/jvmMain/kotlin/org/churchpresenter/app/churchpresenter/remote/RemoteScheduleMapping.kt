@@ -51,7 +51,8 @@ internal fun ScheduleItemDto.toScheduleItem(): ScheduleItem? = when (type) {
         filePath = filePath ?: "",
         fileName = fileName ?: "",
         slideCount = slideCount ?: 0,
-        fileType = fileType ?: ""
+        fileType = fileType ?: "",
+        hymnNumber = hymnNumber ?: ""
     )
     "media" -> ScheduleItem.MediaItem(
         id = id,

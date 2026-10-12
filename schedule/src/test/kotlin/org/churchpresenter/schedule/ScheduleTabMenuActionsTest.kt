@@ -201,7 +201,7 @@ class ScheduleTabMenuActionsTest {
             actions.addSong(42, "Amazing Grace", "Hymnal", "Hymnal::42")
             actions.addBibleVerse("John", 3, 16, "For God so loved the world.", "", 43)
             actions.addPicture("/photos/advent", "Advent", 12)
-            actions.addPresentation("/decks/sermon.pptx", "sermon.pptx", 24, "pptx")
+            actions.addPresentation("/decks/sermon.pptx", "sermon.pptx", 24, "pptx", "")
             actions.addMedia("https://example.org/clip.mp4", "Clip", "video", "")
             actions.addLowerThird("preset-1", "Speaker name", true, 1_500L)
             actions.addWebsite("https://example.org", "Notices")

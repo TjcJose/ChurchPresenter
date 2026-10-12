@@ -150,6 +150,8 @@ data class ScheduleItemDto(
     val fileName: String? = null,
     val slideCount: Int? = null,
     val fileType: String? = null,
+    /** The hymn this row is, for a row the primary's Hymn tab added — see `PresentationItem.hymnNumber`. */
+    val hymnNumber: String? = null,
     // media
     val mediaUrl: String? = null,
     val mediaTitle: String? = null,
@@ -537,6 +539,8 @@ data class RemoteItemDto(
     val fileName: String? = null,
     val slideCount: Int? = null,
     val fileType: String? = null,
+    /** The hymn this row is, when a row the Hymn tab added is sent on — see `PresentationItem.hymnNumber`. */
+    val hymnNumber: String? = null,
     // media
     val mediaUrl: String? = null,
     val mediaTitle: String? = null,

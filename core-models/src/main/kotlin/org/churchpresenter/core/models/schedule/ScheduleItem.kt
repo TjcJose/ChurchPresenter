@@ -85,8 +85,17 @@ sealed class ScheduleItem {
         val fileName: String,
         val slideCount: Int,
         val fileType: String, // "ppt", "pptx", "key", "pdf"
+        /**
+         * The hymn this row is, when the Hymn tab put it in the schedule -- its number in the
+         * hymnbook ("129", "051(甲)"). Empty for a plain presentation. A hymn's deck airs on the
+         * same presentation output, so it stays a [PresentationItem]; this is what sends a row
+         * back to the Hymn tab instead of the Presentation tab.
+         */
+        val hymnNumber: String = "",
         override val displayText: String = "$fileName ($slideCount slides)"
-    ) : ScheduleItem()
+    ) : ScheduleItem() {
+        val isHymn: Boolean get() = hymnNumber.isNotEmpty()
+    }
 
     @Serializable
     @SerialName("org.churchpresenter.app.churchpresenter.models.ScheduleItem.MediaItem")

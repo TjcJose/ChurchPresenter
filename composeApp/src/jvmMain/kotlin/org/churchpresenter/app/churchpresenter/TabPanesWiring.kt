@@ -43,6 +43,7 @@ internal fun MainDesktopScope.TabContentPane(tab: Tabs) {
     when (tab) {
         Tabs.BIBLE -> BibleTabPane()
         Tabs.SONGS -> SongsTabPane()
+        Tabs.HYMN -> HymnTabPane()
         Tabs.PICTURES -> PicturesTabPane()
         Tabs.PRESENTATION -> PresentationTabPane()
         Tabs.MEDIA -> MediaTabPane()
@@ -124,7 +125,7 @@ internal fun MainDesktopScope.PresentationTabPane() {
         hostWindow = hostWindow,
         appSettings = appSettings,
         onAddToSchedule = { filePath, fileName, slideCount, fileType ->
-            currentScheduleActions.addPresentation(filePath, fileName, slideCount, fileType)
+            currentScheduleActions.addPresentation(filePath, fileName, slideCount, fileType, "")
         },
         onSavePreset = { filePath, fileName, slideCount, fileType ->
             state.presetToSave = ScheduleItem.PresentationItem(

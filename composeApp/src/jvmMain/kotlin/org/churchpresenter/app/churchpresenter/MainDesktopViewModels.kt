@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import org.churchpresenter.bibletab.BibleEngineClient
 import org.churchpresenter.bibletab.BibleViewModel
 import org.churchpresenter.dictionary.DictionaryViewModel
+import org.churchpresenter.hymn.HymnViewModel
 import org.churchpresenter.slides.viewmodel.PicturesViewModel
 import org.churchpresenter.slides.viewmodel.PresentationViewModel
 import org.churchpresenter.canvas.SceneViewModel
@@ -37,6 +38,11 @@ internal class MainDesktopViewModels(
 ) {
     val picturesViewModel = PicturesViewModel(appSettings)
     val presentationViewModel = PresentationViewModel(appSettings)
+    // The Hymn tab keeps its own presentation model, separate from the Presentation tab's, so
+    // loading a hymn never clobbers what the Presentation tab has open. Hoisted like the rest, so
+    // the hymn selected and the track playing survive a switch to another tab.
+    val hymnViewModel = HymnViewModel()
+    val hymnPresentationViewModel = PresentationViewModel(appSettings)
     val sceneViewModel = SceneViewModel()
     val songsViewModel = SongsViewModel(
         appSettings,
@@ -74,6 +80,8 @@ internal class MainDesktopViewModels(
         bibleEngineClient.dispose()
         bibleViewModel.dispose()
         songsViewModel.dispose()
+        hymnPresentationViewModel.dispose()
+        hymnViewModel.dispose()
         presentationViewModel.dispose()
         picturesViewModel.dispose()
     }

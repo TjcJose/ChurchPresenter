@@ -134,6 +134,11 @@ include(":helper")
 // hands it the song editor, the title slide, statistics and the Instance Link catalog.
 include(":songs")
 
+// The Hymn tab: browse the hymn PPT files by number, play their piano/vocal mp3s, and show and
+// push their slides exactly like a presentation. Depended on by :composeApp, which hands it the
+// live output through SlidesOutput.
+include(":hymn")
+
 // The Bible tab, BibleViewModel, the cross references and the verse-sequence log. Depended on by
 // :composeApp, which hands it the live output, the detection engine's status and statistics.
 include(":bible-tab")

@@ -770,7 +770,7 @@
     <string name="audio_output_device">输出设备</string>
     <string name="audio_output_default">系统默认</string>
     <string name="media_vlc_required">媒体播放需要 VLC media player</string>
-    <string name="media_vlc_install">请从 videolan.org 安装 VLC，然后重启应用</string>
+    <string name="media_vlc_install">未找到 VLC——请在“设置 → 投影 → 音频输出 → 自定义 VLC 路径”中指定 VLC 文件夹</string>
     <string name="media_vlc_arch_mismatch">VLC 架构不匹配。你的 Mac 使用 Apple Silicon (arm64)，但已安装的 VLC 仅支持 Intel (x86_64)。请从 videolan.org 下载 Apple Silicon 版的 VLC，然后重启。</string>
     <string name="media_vlc_load_failed">找到了 VLC，但无法加载。请尝试从 videolan.org 重新安装 VLC（在 Windows 上还需安装 Microsoft Visual C++ Redistributable），然后重启应用。</string>
     <string name="vlc_custom_path">自定义 VLC 路径</string>
@@ -2767,4 +2767,21 @@
     <string name="helper_command_look_12_does">显示经文的文字设置</string>
     <string name="helper_command_look_13">怎么设置圣经出处的样式</string>
     <string name="helper_command_look_13_does">显示出处的文字设置</string>
+    <string name="hymn">赞美诗</string>
+    <string name="hymn_piano">钢琴</string>
+    <string name="hymn_vocal">人声</string>
+    <string name="search_hymns">搜索赞美诗…</string>
+    <string name="hymn_number">序号</string>
+    <string name="hymn_settings">赞美诗文件夹</string>
+    <string name="hymn_settings_hint">赞美诗 PPT 文件、钢琴与人声 mp3 以及 HymnTitle.txt 所在的位置。PPT 文件名就是赞美诗序号；标题从 HymnTitle.txt 读取。</string>
+    <string name="hymn_ppt_directory">赞美诗 PPT</string>
+    <string name="hymn_piano_directory">钢琴 mp3</string>
+    <string name="hymn_vocal_directory">人声 mp3</string>
+    <string name="hymn_title_directory">HymnTitle.txt</string>
+    <string name="hymn_no_folder">请在“设置 → 系统”中设置赞美诗文件夹以加载赞美诗。</string>
+    <string name="hymn_select_hymn">选择一首赞美诗查看其幻灯片</string>
+    <string name="hymn_no_ppt">这首赞美诗没有 PPT 文件——请把它放进赞美诗文件夹以查看其幻灯片。</string>
+    <string name="hymn_slide_count">%1$d / %2$d</string>
+    <string name="hymn_playing">正在播放 %1$s</string>
+    <string name="hymn_ppt_loading_failed">无法加载这首赞美诗的幻灯片。</string>
 </resources>

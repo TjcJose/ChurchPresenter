@@ -73,14 +73,21 @@ fun ScheduleViewModel.addSinglePicture(image: File, folderImageCount: Int) {
     )
 }
 
-fun ScheduleViewModel.addPresentation(filePath: String, fileName: String, slideCount: Int, fileType: String) {
+fun ScheduleViewModel.addPresentation(
+    filePath: String,
+    fileName: String,
+    slideCount: Int,
+    fileType: String,
+    hymnNumber: String = "",
+) {
     addOrPush(
         ScheduleItem.PresentationItem(
             id = UUID.randomUUID().toString(),
             filePath = filePath,
             fileName = fileName,
             slideCount = slideCount,
-            fileType = fileType
+            fileType = fileType,
+            hymnNumber = hymnNumber
         )
     )
 }

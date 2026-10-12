@@ -33,7 +33,7 @@ class ScheduleActionsTest {
         actions.addSong(1, "title", "book", "id")
         actions.addBibleVerse("book", 1, 1, "text", "range", 1)
         actions.addPicture("path", "name", 1)
-        actions.addPresentation("path", "name", 1, "pptx")
+        actions.addPresentation("path", "name", 1, "pptx", "")
         actions.addMedia("url", "title", "video", "")
         actions.addScene("id", "name")
         actions.addDictionary("1", "word", "translit", "def")
@@ -112,15 +112,17 @@ class ScheduleActionsTest {
     }
 
     @Test
-    fun `addPresentation passes file path, name, slide count and type in order`() {
+    fun `addPresentation passes file path, name, slide count, type and hymn number in order`() {
         var received: List<Any>? = null
         val actions = ScheduleActions(
-            addPresentation = { path, name, slides, type -> received = listOf(path, name, slides, type) },
+            addPresentation = { path, name, slides, type, hymn ->
+                received = listOf(path, name, slides, type, hymn)
+            },
         )
 
-        actions.addPresentation("/decks/sermon.pptx", "sermon.pptx", 24, "pptx")
+        actions.addPresentation("/decks/sermon.pptx", "sermon.pptx", 24, "pptx", "")
 
-        assertEquals(listOf("/decks/sermon.pptx", "sermon.pptx", 24, "pptx"), received)
+        assertEquals(listOf("/decks/sermon.pptx", "sermon.pptx", 24, "pptx", ""), received)
     }
 
     @Test

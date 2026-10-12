@@ -5,6 +5,7 @@ import org.churchpresenter.strings.generated.resources.announcements
 import org.churchpresenter.strings.generated.resources.bible
 import org.churchpresenter.strings.generated.resources.crossword_tab
 import org.churchpresenter.strings.generated.resources.display_lower_third
+import org.churchpresenter.strings.generated.resources.hymn
 import org.churchpresenter.strings.generated.resources.media
 import org.churchpresenter.strings.generated.resources.pictures
 import org.churchpresenter.strings.generated.resources.presentation
@@ -22,6 +23,7 @@ val Tabs.labelRes: StringResource
     get() = when (this) {
         Tabs.BIBLE -> Res.string.bible
         Tabs.SONGS -> Res.string.songs
+        Tabs.HYMN -> Res.string.hymn
         Tabs.PICTURES -> Res.string.pictures
         Tabs.PRESENTATION -> Res.string.presentation
         Tabs.MEDIA -> Res.string.media

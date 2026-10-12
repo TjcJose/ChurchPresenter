@@ -329,6 +329,7 @@ kotlin {
             implementation(projects.announcements)
             implementation(projects.helper)
             implementation(projects.songs)
+            implementation(projects.hymn)
             implementation(projects.bibleTab)
             implementation(projects.server)
             implementation(projects.schedule)

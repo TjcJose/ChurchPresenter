@@ -1156,7 +1156,7 @@
     <string name="audio_output_default">System Default</string>
     <string name="media_vlc_required">VLC media player is required for media playback</string>
     <string name="background_camera_required">A camera or capture device is required. Connect a camera or a Blackmagic DeckLink card, or check Settings → Projection if ffmpeg could not be found.</string>
-    <string name="media_vlc_install">Please install VLC from videolan.org and restart the application</string>
+    <string name="media_vlc_install">VLC not found — set its folder in Settings → Projection → Audio output → Custom VLC path</string>
     <string name="media_vlc_arch_mismatch">Wrong VLC architecture. Your Mac uses Apple Silicon (arm64) but the installed VLC is Intel-only (x86_64). Download the Apple Silicon build of VLC from videolan.org and restart.</string>
     <string name="media_vlc_load_failed">VLC was found but could not be loaded. Try reinstalling VLC from videolan.org (on Windows, also install the Microsoft Visual C++ Redistributable), then restart the application.</string>
     <string name="vlc_custom_path">Custom VLC path</string>
@@ -3671,6 +3671,23 @@
     <string name="control_field_controller">Controller</string>
     <string name="control_field_value">Value (blank = any)</string>
     <string name="control_field_command">Command</string>
+    <string name="hymn">Hymn</string>
+    <string name="hymn_piano">Piano</string>
+    <string name="hymn_vocal">Vocal</string>
+    <string name="search_hymns">Search hymns...</string>
+    <string name="hymn_number">Number</string>
+    <string name="hymn_settings">Hymn folders</string>
+    <string name="hymn_settings_hint">Where the hymn PPT files, their piano and vocal mp3s, and HymnTitle.txt live. The PPT file name is the hymn number; its title is read from HymnTitle.txt.</string>
+    <string name="hymn_ppt_directory">Hymn PPT</string>
+    <string name="hymn_piano_directory">Piano mp3s</string>
+    <string name="hymn_vocal_directory">Vocal mp3s</string>
+    <string name="hymn_title_directory">HymnTitle.txt</string>
+    <string name="hymn_no_folder">Set the hymn folders in Settings → System to load hymns.</string>
+    <string name="hymn_select_hymn">Select a hymn to see its slides</string>
+    <string name="hymn_no_ppt">This hymn has no PPT file — put it in the hymn folder to see its slides.</string>
+    <string name="hymn_slide_count">%1$d / %2$d</string>
+    <string name="hymn_playing">Playing %1$s</string>
+    <string name="hymn_ppt_loading_failed">This hymn\'s slides could not be loaded.</string>
     <string name="control_field_cue">Cue (blank = any)</string>
     <string name="control_field_address">OSC address</string>
     <string name="control_field_argument">OSC argument (optional)</string>

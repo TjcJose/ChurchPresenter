@@ -62,6 +62,19 @@ class MainDesktopScheduleItemTabTest {
     }
 
     @Test
+    fun `a hymn row routes back to the Hymn tab`() {
+        val item = ScheduleItem.PresentationItem(
+            id = "1",
+            filePath = "/hymns/001.pptx",
+            fileName = "001",
+            slideCount = 4,
+            fileType = "pptx",
+            hymnNumber = "001",
+        )
+        assertEquals(Tabs.HYMN, tabForScheduleItem(item))
+    }
+
+    @Test
     fun `media routes to the Media tab`() {
         val item = ScheduleItem.MediaItem(id = "1", mediaUrl = "u", mediaTitle = "t", mediaType = "local")
         assertEquals(Tabs.MEDIA, tabForScheduleItem(item))

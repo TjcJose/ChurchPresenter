@@ -37,7 +37,8 @@ fun RemoteItemDto.toScheduleItem(): ScheduleItem? {
                 filePath   = filePath,
                 fileName   = fileName ?: filePath,
                 slideCount = slideCount ?: 0,
-                fileType   = fileType ?: ""
+                fileType   = fileType ?: "",
+                hymnNumber = hymnNumber ?: ""
             )
         // Media — must have mediaUrl
         mediaUrl != null ->
@@ -123,7 +124,8 @@ internal fun ScheduleItem.toDto(): ScheduleItemDto = when (this) {
     is ScheduleItem.PresentationItem -> ScheduleItemDto(
         id = id, type = "presentation", displayText = displayText,
         filePath = filePath, fileName = fileName,
-        slideCount = slideCount, fileType = fileType
+        slideCount = slideCount, fileType = fileType,
+        hymnNumber = hymnNumber.ifEmpty { null }
     )
     is ScheduleItem.MediaItem -> ScheduleItemDto(
         id = id, type = "media", displayText = displayText,

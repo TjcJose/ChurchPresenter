@@ -58,4 +58,26 @@ class MainDesktopStateTest {
         assertFalse(state.showAddWebsiteDialog)
         assertFalse(state.showKonamiEasterEgg)
     }
+
+    @Test
+    fun `select routes a hymn row to the Hymn tab and a plain deck to the Presentation tab`() {
+        val state = state()
+        val deck = ScheduleItem.PresentationItem(
+            id = "1", filePath = "/decks/sermon.pptx", fileName = "sermon",
+            slideCount = 3, fileType = "pptx",
+        )
+        val hymn = ScheduleItem.PresentationItem(
+            id = "2", filePath = "/hymns/001.pptx", fileName = "001",
+            slideCount = 3, fileType = "pptx", hymnNumber = "001",
+        )
+
+        assertTrue(state.select(deck))
+        assertEquals(deck, state.selectedPresentationItem)
+        assertNull(state.selectedHymnItem)
+
+        assertTrue(state.select(hymn))
+        assertEquals(hymn, state.selectedHymnItem)
+        // The plain deck the Presentation tab already holds is left alone.
+        assertEquals(deck, state.selectedPresentationItem)
+    }
 }

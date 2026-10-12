@@ -80,6 +80,8 @@ internal class MainDesktopScope(
 
     val picturesViewModel = owned.vms.picturesViewModel
     val presentationViewModel = owned.vms.presentationViewModel
+    val hymnViewModel = owned.vms.hymnViewModel
+    val hymnPresentationViewModel = owned.vms.hymnPresentationViewModel
     val sceneViewModel = owned.vms.sceneViewModel
     val songsViewModel = owned.vms.songsViewModel
     val bibleViewModel = owned.vms.bibleViewModel
