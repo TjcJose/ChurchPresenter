@@ -18,8 +18,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.churchpresenter.app.churchpresenter.dialogs.clearGroupItemTag
-import org.churchpresenter.app.churchpresenter.dialogs.clearLayerItemTag
+import org.churchpresenter.dialogs.clearGroupItemTag
+import org.churchpresenter.dialogs.clearLayerItemTag
 import org.churchpresenter.companionsurface.CompanionSatelliteViewModel
 import org.churchpresenter.core.models.shortcuts.KeyChord
 import org.churchpresenter.liveoutput.PresenterManager
@@ -45,8 +45,6 @@ import org.churchpresenter.showcontrol.Action
  * and clear-group keys.
  */
 class MainDesktopDevModeTest : MainDesktopComposeHarness() {
-
-
 
     @Test
     fun `in dev mode the sidebar's box holds the unfinished features, and its toggle switches preview mode`() {
@@ -178,7 +176,6 @@ class MainDesktopDevModeTest : MainDesktopComposeHarness() {
         }
     }
 
-
     @Test
     fun `the clear layers menu clears a group, or one layer that is on air`() {
         val gfx = ClearGroup("g1", "Graphics", listOf(Layer.GRAPHICS.name))
@@ -251,5 +248,4 @@ class MainDesktopDevModeTest : MainDesktopComposeHarness() {
             onNodeWithTag(DEV_MODE_BOX_TAG).assertExists()
         }
     }
-
 }

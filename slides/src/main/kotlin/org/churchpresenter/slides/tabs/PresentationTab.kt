@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import org.churchpresenter.theme.AppShape
+import org.churchpresenter.theme.keyboardFocusRing
 import androidx.compose.material3.Icon
 import org.churchpresenter.theme.components.KeyIconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.key.KeyEvent
@@ -185,14 +187,13 @@ fun PresentationTab(
     // Remembered, keyed on everything it holds: a new scope on every recomposition would hand the
     // pieces new lambdas each time, and a click handler keyed on its lambda would restart.
     val tab = remember(
-        hostWindow, appSettings, onAddToSchedule, onSavePreset, onInstanceLinkSendProject, onInstanceLinkSendNextSlide,
+        appSettings, onAddToSchedule, onSavePreset, onInstanceLinkSendProject, onInstanceLinkSendNextSlide,
         onInstanceLinkSendPreviousSlide, instanceLinkFetchPresentationSlideBytes, selectedPresentationItem,
         selectedPresentationItemVersion, presenterManager, onSlidesLoaded, onSettingsChange,
         presentationFrozen, onFreezeToggle, onClearPresentation, vlcAvailable, vlcArchMismatch, vlcLoadFailed, scope,
         focusRequester, focusRescue, shortcuts, wentLive, presentationFileDialogTitle, showRemoteDialogState
     ) {
         PresentationTabScope(
-            hostWindow = hostWindow,
             appSettings = appSettings,
             onAddToSchedule = onAddToSchedule,
             onSavePreset = onSavePreset,
@@ -239,6 +240,8 @@ fun PresentationTab(
                     rootFocused = it.isFocused
                 }
                 .focusRescuePressHook(focusRescue)
+                // The whole tab takes the arrow keys; Tab landing on it is shown by a ring just inside it.
+                .keyboardFocusRing(RectangleShape, inset = true)
                 .focusable()
                 .onKeyEvent { keyEvent ->
                     shortcuts.handleGoLiveKey(keyEvent, rootFocused, canGoLive) {

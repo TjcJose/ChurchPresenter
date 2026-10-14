@@ -23,6 +23,8 @@ import java.nio.file.Files
 import javax.imageio.ImageIO
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.churchpresenter.companionsurface.CompanionSatelliteViewModel
 import org.churchpresenter.core.models.schedule.ScheduleItem
@@ -59,6 +61,9 @@ abstract class MainDesktopComposeHarness {
         TestSingletons.latchToTestHome()
         clearScheduleAutoSave()
         dir = Files.createTempDirectory("cp-main-desktop-compose").toFile()
+        // An autosave a slower test left in this fork's home would open the "restore the unsaved
+        // schedule?" prompt over the window, and every click and key below would land in it instead.
+        File(System.getProperty("user.home"), ".churchpresenter/autosave_schedule.tmp").delete()
     }
 
     @AfterTest
@@ -118,7 +123,10 @@ abstract class MainDesktopComposeHarness {
         val macrosRun = mutableListOf<Macro>()
     }
 
-    /** Composes the root with [appSettings], then lets everything it launched settle. */
+    /**
+     * Composes the root with [appSettings], then lets everything it launched settle. [testTimeout] is
+     * the wall-clock limit on the whole of [block], as `runTest` holds it.
+     */
     protected fun root(
         appSettings: AppSettings = settings(),
         flows: Flows = Flows(),
@@ -126,8 +134,9 @@ abstract class MainDesktopComposeHarness {
         presenterManager: PresenterManager = PresenterManager(),
         devMode: Boolean = true,
         media: MediaViewModel? = null,
+        testTimeout: Duration = 60.seconds,
         block: ComposeUiTest.(ScheduleActions) -> Unit = {},
-    ) = runComposeUiTest {
+    ) = runComposeUiTest(testTimeout = testTimeout) {
         var actions = ScheduleActions()
         setContent {
             // The bindings, as MainWindow provides them from the settings.

@@ -18,6 +18,7 @@ enum class RemoteEventType {
     REMOVE_FROM_SCHEDULE,
     PROJECT,
     PRESENTATION_CONNECT,
+
     /** A phone asking to plan the calendar through the relay. */
     CALENDAR_ENROLL,
     PRESENT,    // instant: select_song_section / select_picture / select_slide / select_bible_verse
@@ -31,7 +32,9 @@ enum class RemoteEventType {
     QA_DONE,
     QA_DISPLAY,
     QA_CLEAR_DISPLAY,
+    QA_CLEAR_ALL,
     QA_ADMIN_CONNECT,
+
     /** A tablet opening a Browser Source output's musician view, to transpose its chords. */
     MUSICIAN_CONNECT,
 }

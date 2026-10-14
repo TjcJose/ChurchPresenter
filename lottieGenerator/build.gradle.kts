@@ -6,12 +6,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinx.serialization)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.roborazzi)
     jacoco
 }
 
 group = "org.churchpresenter"
 
-extra["coverageExcludes"] = listOf("**/ui/**", "**/MainKt*", "**/ComposableSingletons*")
+extra["coverageExcludes"] = listOf("**/ComposableSingletons*")
 
 kotlin {
     jvmToolchain(21)
@@ -30,9 +31,19 @@ dependencies {
     implementation(libs.compottie.dot)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.compose.uiTest)
+    testImplementation(libs.compose.uiTestJunit4)
+    testImplementation(testFixtures(projects.sharedUi))
+    testImplementation(libs.roborazzi.composeDesktop)
+    // The screenshot suite reports a hung capture with the shared thread dump.
+    testImplementation(projects.diagnostics)
+    testImplementation(testFixtures(projects.diagnostics))
 }
 
 tasks.test {
+    val testHome = layout.buildDirectory.dir("test-home").get().asFile
+    doFirst { testHome.mkdirs() }
+    systemProperty("user.home", testHome.absolutePath)
     systemProperty("java.awt.headless", "true")
 }
 
@@ -63,6 +74,11 @@ compose.desktop {
             }
         }
     }
+}
+
+// Committed, beside the module, as the other modules' suites are.
+roborazzi {
+    outputDir.set(layout.projectDirectory.dir("screenshots"))
 }
 
 detekt {

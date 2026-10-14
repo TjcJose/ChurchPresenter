@@ -49,6 +49,18 @@ demand.
 
 ### UI icons
 - **NEVER** use text/emoji as icons (`Text("⏸")`). Use `painterResource()` with real icon assets.
+- **Every control a mouse can press has a name** a screen reader can say: an icon-only control
+  gets a `contentDescription` (its tooltip text is usually right); a toggle gets its role and state
+  (`toggleable(role = …)`). `AccessibleNamesTest` walks every tab of the main window and fails on a
+  clickable node with no name; `KeyboardReachTest` holds Go Live, Add to Schedule, Clear Display and
+  Take reachable with Tab.
+- **Every Tab stop shows that it has focus.** `raised()` draws the ring (`keyboardFocusRing`, in
+  `:theme`); a control whose `clickable` comes before its surface, or whose surface clips
+  (`sunken`, `dropdownField`), puts `keyboardFocusRing(shape)` first in its chain. Rings show only
+  once Tab has been used in that window, and go away on a pointer press (`FocusVisibility`, provided
+  by `ChurchPresenterTheme`). A multi-line field takes `tabMovesFocus()` so Tab cannot be trapped
+  in it. `FocusRingVisibleTest` tabs round every tab of the main window and fails on a stop whose
+  picture does not change, or one Tab cannot leave.
 
 ### Debugging and logging
 - Diagnostics go through `Log.info`/`warn`/`error` (`:diagnostics`), never `println` or
@@ -75,7 +87,7 @@ All source under `composeApp/src/jvmMain/kotlin/org/churchpresenter/app/churchpr
 | `data/`          | File I/O, database, song parsing, Bible data — the play statistics are `:statistics` |
 | `models/`        | Only what needs the app: `PresetItems` — `ShortcutAction` is `:shared-ui`, the Companion UI states `:companion-surface` |
 | `composables/`   | UI components with app or feature ties (SceneCanvas, DeckLinkManager, etc.) — the shared ones are `:shared-ui`, the video player `:media` |
-| `dialogs/`       | All dialogs and settings dialog tabs                                |
+| `dialogs/`       | The Options dialog, the tool windows, the license and Share Your Story dialogs, the settings tabs — the other dialogs are `:dialogs` |
 | `utils/`         | Stateless helpers (window icons, placement, etc.) — the shared ones (AutoFit, screen bounds) are `:shared-ui`, crash reporting is `:diagnostics`, the updater is `:updater` |
 | `ui/theme/`      | The theme-customization settings — `Language` is `:shared-ui`, the theme itself is the `:theme` module |
 
@@ -97,7 +109,7 @@ module-specific notes there, not here.**
 
 | Module                 | Gradle                 | What it is                                                                        | Notes                                    |
 |------------------------|------------------------|-----------------------------------------------------------------------------------|------------------------------------------|
-| `converter/`           | `:converter`           | Song/Bible format converter, also a standalone app                                | [AGENT.md](converter/AGENT.md)           |
+| `converter/`           | `:converter`           | Song/Bible format converter, opened from the Help menu                            | [AGENT.md](converter/AGENT.md)           |
 | `companion-satellite/` | `:companion-satellite` | Bitfocus Companion Satellite protocol client                                      | [AGENT.md](companion-satellite/AGENT.md) |
 | `theme/`               | `:theme`               | The nine color schemes, semantic colors, type and shape scales                    | [AGENT.md](theme/AGENT.md)               |
 | `core-models/`         | `:core-models`         | The shared data models                                                            | [AGENT.md](core-models/AGENT.md)         |
@@ -147,6 +159,7 @@ module-specific notes there, not here.**
 | `server-ui/`           | `:server-ui`           | The Server settings page, calendar sync's card and Instance Link's windows: the Compose face of `:server` | [AGENT.md](server-ui/AGENT.md)           |
 | `app-settings/`        | `:app-settings`        | The System settings page, the setup wizard, auto-start and the `.sps` converter    | [AGENT.md](app-settings/AGENT.md)        |
 | `telemetry/`           | `:telemetry`           | What the app reports about itself: the live-map ping, usage events, the contact form, the device report | [AGENT.md](telemetry/AGENT.md)           |
+| `dialogs/`             | `:dialogs`             | The dialogs and small windows: About, Contact Us, keyboard shortcuts, Customize Theme, the remote and show-control dialogs | [AGENT.md](dialogs/AGENT.md)             |
 
 Every one is a real Gradle module of this build and is committed directly (no git submodules, no
 second wrapper): tested with `./gradlew :<module>:test` on the root wrapper, dependency versions
@@ -165,8 +178,8 @@ The JaCoCo wiring, `useJUnitPlatform()` and the six-counter floor (85% on all si
 **once** in the root `build.gradle.kts`, in the `subprojects { plugins.withId(...) }` block. A
 module's build file carries only what differs, set **above everything else** in the file:
 - `extra["coverageFloors"]` — a counter→minimum map **merged over** the defaults; name only the
-  counters that need a different number. `:bible-engine`, `:presentation-engine`, `:slides`,
-  `:canvas` and `:profiles` name two each and `:converter` one; every other module names none.
+  counters that need a different number. No module names any today; every one is on the
+  shared 85%.
   Each is the measured value rounded down — a ratchet, raised as tests are added and deleted once
   the counter clears 85%. Each module's own `AGENT.md` says which, and why.
 - `extra["coverageExcludes"]` — class-directory excludes, replacing the default
@@ -204,6 +217,7 @@ bash cleanup_check.sh                  # repo code-quality report
 ./gradlew :composeApp:renderBenchmark -PrecordCiRenderBaseline  # write composeApp/benchmarks/ci/ (CI's own: record via render-benchmark.yml, not locally)
 ./gradlew :composeApp:renderBenchmark -PcheckRenderRegression   # fail on a row slower than the CI baseline (render-benchmark.yml's gate)
 ./gradlew :composeApp:soakTest -PsoakMinutes=10  # a scripted service on one output; fails on a leak or stall (CI: 240, weekly on main; a failure files a soak-failure issue)
+./gradlew :composeApp:monkeyTest -PmonkeySeed=1 -PmonkeySteps=1500  # random presses, typing and keys on the main window; fails on any exception (CI: weekly on main, monkey.yml; a failure files a monkey-failure issue)
 ./gradlew :composeApp:gpuBenchmark        # on-screen output windows on the GPU — needs a display; -PrecordGpuBaseline → composeApp/benchmarks/gpu/
 ./gradlew :composeApp:startupBenchmark    # 5 launches: time to first frame, idle memory; -PcheckBudgets against composeApp/benchmarks/budgets.md
 ./gradlew :composeApp:isolationBenchmark  # an output window's frame gaps under injected UI stalls — see docs/SHOW_CONTROL.md
@@ -224,7 +238,7 @@ failing, a `NoClassDefFoundError` at runtime — is a stale build. `clean` does 
 
 ### detekt
 **Run `./gradlew :composeApp:detekt` (and the detekt task of every module you touched) as the last
-step of any change that touched Kotlin.** It is the first job in `.github/workflows/test.yml`, and it
+step of any change that touched Kotlin.** It is a job of its own in `.github/workflows/test.yml`, and it
 fails on what the compiler only warns about (an unused import). Every finding it prints is yours to
 fix.
 
@@ -241,6 +255,14 @@ ever raised was fixed in code, and the build configures no `baseline =` anywhere
 Thresholds are deliberately not detekt's defaults: `LongMethod` 100, `LargeClass` 1000, and
 `LongParameterList` with `ignoreDefaultParameters: true` so the `*TestSupport.kt` DSL helpers are
 not flagged.
+
+**Formatting is detekt-formatting (ktlint)**, added to every module once from the root build. The
+rules that are on are clean and auto-correctable — `./gradlew detekt --auto-correct` fixes what it
+finds. Deliberately **off**, each for rewriting a large share of the tree: `Indentation`,
+`ArgumentListWrapping`, `Wrapping`, `ImportOrdering`, `MultiLineIfElse`, `NoMultipleSpaces`,
+`ParameterListWrapping`, `AnnotationOnSeparateLine`, the two `TrailingComma*` rules, `Filename`, and
+`MaximumLineLength` (detekt's own `MaxLineLength` is in force). The measured counts are in the
+`formatting:` block of `config/detekt/detekt.yml`; turn one on only together with its whole fix.
 
 ### Screenshots
 - **Committed, beside the module that shoots them** — `composeApp/screenshots/` for the app's tabs,
@@ -278,7 +300,7 @@ not flagged.
 - `<module>/screenshots/.parts` (per-theme halves) is git-ignored and cleaned in a `finally`;
   never commit it.
 - The `reg_actions` branch holds the PR-comment images; retention is `retention-days` in
-  `screenshots.yml`, and `reg-actions-prune.yml` squashes the branch monthly. It is not the
+  `screenshots.yml`, and `cleanup.yml` squashes the branch monthly. It is not the
   comparison baseline.
 
 ### Other commands
@@ -306,7 +328,11 @@ keep passing, and a test your change invalidated is fixed or deleted as part of 
 `composeApp/src/jvmTest/` — run with `./gradlew :composeApp:check`. CI (`.github/workflows/test.yml`)
 runs these on every push, plus each module's suite when the change touched that module or one it
 depends on — worked out from `./gradlew moduleGraph` by `.github/ci/affected_modules.py`, so a new
-`projects.*` dependency needs no CI edit.
+`projects.*` dependency needs no CI edit. The jobs run side by side: `app`, `detekt`, the three-run
+check, and `modules`, whose suites `.github/ci/plan_ci.py` packs into up to eight runners by their measured
+minutes; each runner runs its suites one at a time. **A new module with tests is one row in `plan_ci.py`'s `MODULES`** — until then CI warns
+that it never runs. `test` is the required check: it gathers the results and fails unless every job
+passed.
 
 ### The suite runs in parallel forks
 `jvmTest` runs on up to 4 parallel JVMs (`-PtestForks=N` to override). Breaking these produces
@@ -353,6 +379,11 @@ every `@BeforeClass`.
   timeouts as the success path, or warm-up pauses. When the production delay is the cost, make it an
   injectable defaulted parameter; if that is impossible, don't write the test and note the gap in the
   class doc. Check with the `time=` attributes in `composeApp/build/test-results/jvmTest/TEST-*.xml`.
+- **Three costs that look like waiting and are not:** a `CompanionServer` stopped with its default
+  one-second grace (tests construct it with `shutdownGraceMs = 0`); Swing's `doClick()`, which
+  sleeps 68 ms per press (use `doClick(0)`); and a long `mainClock.advanceTimeBy` while something
+  animates, which composes and draws every frame on the way (jump with `ignoreFrameDuration = true`
+  when nothing between here and the deadline matters).
 - **A route that answers before it finishes leaves a coroutine behind — track it and join it before
   teardown.** `POST /api/atem/still|clip` transfers after responding; route every test in such a suite
   through `AtemBridge.trackUpload`/`cancelUpload` (which joins).

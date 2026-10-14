@@ -51,28 +51,17 @@ internal class CanvasTabScope(
     var leftPanelPx by state.leftPanelPx
     var rightPanelPx by state.rightPanelPx
     var renamingSceneId by state.renamingSceneId
+
     // The scene whose second layout is about to be removed, while the confirmation is open.
     var confirmSingleLayoutSceneId by state.confirmSingleLayoutSceneId
     var renameText by state.renameText
+
     // Drawing tool state
     var activeTool by state.activeTool
     var drawingStrokeColor by state.drawingStrokeColor
     var drawingFillColor by state.drawingFillColor
     var drawingStrokeWidth by state.drawingStrokeWidth
     val focusRequester = state.focusRequester
-
-    val strImage get() = sourceNames.strImage
-    val strText get() = sourceNames.strText
-    val strColor get() = sourceNames.strColor
-    val strVideo get() = sourceNames.strVideo
-    val strTimer get() = sourceNames.strTimer
-    val strQrCode get() = sourceNames.strQrCode
-    val strCamera get() = sourceNames.strCamera
-    val strScreenCapture get() = sourceNames.strScreenCapture
-    val strNdi get() = sourceNames.strNdi
-    val strOmt get() = sourceNames.strOmt
-    val strBrowser get() = sourceNames.strBrowser
-    val strBible get() = sourceNames.strBible
 
     fun saveLeftPanel() {
         val dp = with(density) { leftPanelPx.toDp().value.toInt() }
@@ -83,7 +72,6 @@ internal class CanvasTabScope(
         val dp = with(density) { rightPanelPx.toDp().value.toInt() }
         onSettingsChangeState.value { s -> withCanvasRightPanelWidth(s, isMaximized, dp) }
     }
-
 }
 
 /** The source types' default names, localised in composable scope for the menu's onClick lambdas. */

@@ -113,6 +113,7 @@ private class BodyHalf(val label: String) {
 /** The language halves of a .song body, filled a line at a time. */
 private class SongBody {
     private val primary = BodyHalf("")
+
     /** Sparse by slot, so a file that writes `[Translation 4]` and no `[Secondary]` keeps the
      *  gap rather than sliding the fourth language into the second one's place. */
     private val extras = sortedMapOf<Int, BodyHalf>()
@@ -159,7 +160,8 @@ class SongFileParser {
             val path = Paths.get(filePath)
             if (!Files.exists(path)) return null
 
-            val content = Files.readString(path, StandardCharsets.UTF_8)
+            // UTF-8, else Windows-1251: older Cyrillic libraries were saved in the ANSI code page.
+            val content = decodeUtf8OrCyrillic(Files.readAllBytes(path))
             return parseSongContent(content, filePath, songbook)
         } catch (_: Exception) {
             return null

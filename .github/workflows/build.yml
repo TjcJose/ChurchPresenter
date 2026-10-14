@@ -75,7 +75,7 @@ jobs:
       version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -106,18 +106,18 @@ jobs:
       WINDOWS_SIGNING_ENABLED: ${{ secrets.WINDOWS_CERTIFICATE_PFX != '' && 'true' || 'false' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Get short commit hash
         id: vars
@@ -202,7 +202,7 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-msi
           path: composeApp/build/compose/binaries/main/msi
@@ -212,7 +212,7 @@ jobs:
       # outside the Store installs only with a trusted signature.
       - name: Upload MSIX artifact
         if: steps.msix.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-msix
           path: composeApp/build/compose/binaries/main/msix
@@ -225,18 +225,18 @@ jobs:
       MACOS_SIGNING_ENABLED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && 'true' || 'false' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -399,7 +399,7 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-dmg
           path: composeApp/build/compose/binaries/main/dmg
@@ -422,18 +422,18 @@ jobs:
       MACOS_SIGNING_ENABLED: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && 'true' || 'false' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -597,7 +597,7 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: macos-dmg-x64
           path: composeApp/build/compose/binaries/main/dmg
@@ -620,18 +620,23 @@ jobs:
       LINUX_SIGNING_ENABLED: ${{ secrets.LINUX_GPG_PRIVATE_KEY != '' && 'true' || 'false' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          # Reads the Gradle cache but never writes it: on Linux only test.yml's `app` job saves one, so
+          # main keeps one copy that every job restores from (setup-gradle falls back to the newest
+          # entry for the same OS) instead of a copy per job that pushes the rest out of the 10 GB.
+          cache-read-only: true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -648,7 +653,9 @@ jobs:
           GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG 2>/dev/null | grep 'sec' | head -1 | awk '{print $2}' | cut -d'/' -f2)
           # dpkg-sig was removed from Ubuntu 24.04 repos — install from archive
           sudo apt-get install -y libconfig-file-perl
-          curl -sLO https://archive.ubuntu.com/ubuntu/pool/universe/d/dpkg-sig/dpkg-sig_0.13.1+nmu4_all.deb
+          curl -sSfLO https://archive.ubuntu.com/ubuntu/pool/universe/d/dpkg-sig/dpkg-sig_0.13.1+nmu4_all.deb
+          # The digest from jammy's signed universe Packages index; nothing unverified is installed as root.
+          echo "c6eb0f053b7e67695b342720ddbe1126e6b0939e1520ace1fa7e0097426c73d1  dpkg-sig_0.13.1+nmu4_all.deb" | sha256sum -c -
           sudo dpkg -i dpkg-sig_0.13.1+nmu4_all.deb
           rm dpkg-sig_0.13.1+nmu4_all.deb
           SIGNING_DIR="$RUNNER_TEMP/signing/linux"
@@ -677,10 +684,24 @@ jobs:
           done
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-deb
           path: composeApp/build/compose/binaries/main/deb
+          retention-days: 2
+
+      # The software bill of materials for the release: every library the app runs with (CycloneDX
+      # JSON, from the runtime classpath only). Platform-independent, so one runner makes it.
+      - name: Generate SBOM
+        run: |
+          ./gradlew :composeApp:cyclonedxDirectBom
+          cp composeApp/build/reports/cyclonedx/bom.json ChurchPresenter-sbom.cdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom
+          path: ChurchPresenter-sbom.cdx.json
           retention-days: 2
 
   release:
@@ -691,37 +712,44 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Download Windows artifact
         if: ${{ inputs.windows && needs.build-windows.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: windows-msi
           path: release/windows
 
       - name: Download macOS artifact
         if: ${{ inputs.macos_arm64 && needs.build-macos.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-dmg
           path: release/macos
 
       - name: Download macOS x64 artifact
         if: ${{ inputs.macos_x64 && needs.build-macos-x64.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: macos-dmg-x64
           path: release/macos
 
       - name: Download Linux artifact
         if: ${{ inputs.linux && needs.build-linux.result == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: linux-deb
           path: release/linux
+
+      - name: Download SBOM
+        if: ${{ inputs.linux && needs.build-linux.result == 'success' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sbom
+          path: release/sbom
 
       - name: List release files
         run: |
@@ -755,7 +783,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ needs.version.outputs.version }}
           name: ChurchPresenter ${{ needs.version.outputs.version }}
@@ -765,5 +793,6 @@ jobs:
             release/windows/*
             release/macos/*
             release/linux/*
+            release/sbom/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

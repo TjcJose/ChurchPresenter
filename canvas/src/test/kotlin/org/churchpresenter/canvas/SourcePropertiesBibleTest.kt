@@ -3,7 +3,13 @@
 package org.churchpresenter.canvas
 
 import androidx.compose.ui.test.ComposeUiTest
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
@@ -142,8 +148,8 @@ class SourcePropertiesBibleTest {
     @Test
     fun `every face is offered twice, once for each piece of text`() =
         sourcePanel(Fixture.bible()) { _ ->
-            listOf("B", "I", "U", "S").forEach {
-                assertEquals(2, countOf(it), "the verse and the reference each get their own \"$it\"")
+            listOf("Bold", "Italic", "Underline", "Strikethrough").forEach {
+                assertEquals(2, countNamed(it), "the verse and the reference each get their own \"$it\"")
             }
         }
 
@@ -284,35 +290,35 @@ class SourcePropertiesBibleTest {
 
     @Test
     fun `the verse's Bold flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("B", StyleRow.VERSE)
+        clickStyleButton("Bold", StyleRow.VERSE)
 
         assertEquals(Fixture.bible().copy(bold = true), get(), "the verse's B owns only its own flag")
     }
 
     @Test
     fun `the verse's Italic flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("I", StyleRow.VERSE)
+        clickStyleButton("Italic", StyleRow.VERSE)
 
         assertEquals(Fixture.bible().copy(italic = true), get())
     }
 
     @Test
     fun `the verse's Underline flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("U", StyleRow.VERSE)
+        clickStyleButton("Underline", StyleRow.VERSE)
 
         assertEquals(Fixture.bible().copy(underline = true), get())
     }
 
     @Test
     fun `the verse's Strikethrough flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("S", StyleRow.VERSE)
+        clickStyleButton("Strikethrough", StyleRow.VERSE)
 
         assertEquals(Fixture.bible().copy(strikethrough = true), get())
     }
 
     @Test
     fun `the reference's Bold flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("B", StyleRow.REFERENCE)
+        clickStyleButton("Bold", StyleRow.REFERENCE)
 
         assertEquals(
             Fixture.bible().copy(referenceBold = true), get(),
@@ -322,21 +328,21 @@ class SourcePropertiesBibleTest {
 
     @Test
     fun `the reference's Italic flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("I", StyleRow.REFERENCE)
+        clickStyleButton("Italic", StyleRow.REFERENCE)
 
         assertEquals(Fixture.bible().copy(referenceItalic = true), get())
     }
 
     @Test
     fun `the reference's Underline flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("U", StyleRow.REFERENCE)
+        clickStyleButton("Underline", StyleRow.REFERENCE)
 
         assertEquals(Fixture.bible().copy(referenceUnderline = true), get())
     }
 
     @Test
     fun `the reference's Strikethrough flips only that flag`() = sourcePanel(Fixture.bible()) { get ->
-        clickStyleButton("S", StyleRow.REFERENCE)
+        clickStyleButton("Strikethrough", StyleRow.REFERENCE)
 
         assertEquals(Fixture.bible().copy(referenceStrikethrough = true), get())
     }
@@ -344,7 +350,7 @@ class SourcePropertiesBibleTest {
     @Test
     fun `a face stored on is turned back off by its own button`() {
         sourcePanel(Fixture.bible().copy(bold = true, referenceBold = true)) { get ->
-            clickStyleButton("B", StyleRow.VERSE)
+            clickStyleButton("Bold", StyleRow.VERSE)
 
             val source = get() as SceneSource.BibleSource
             assertEquals(false, source.bold)
@@ -512,6 +518,24 @@ class SourcePropertiesBibleTest {
     }
 
     @Test
+    fun `choosing a chapter loads it, and Insert reads from it`() {
+        sourcePanel(Fixture.bible(), appSettings = settingsWithBible()) { get ->
+            awaitBibleLoaded()
+            waitUntil("the Insert button must appear", timeoutMillis = 5_000) { countOf("Insert Verse") == 1 }
+
+            onAllNodes(hasText("1") and hasClickAction() and !hasSetTextAction())
+                .onFirst().performScrollTo().performClick()
+            waitForIdle()
+            onAllNodesWithText("2").onLast().performClick()
+            waitForIdle()
+            onNodeWithText("Insert Verse").performScrollTo().performClick()
+            waitForIdle()
+
+            assertEquals("Genesis 2:1", (get() as SceneSource.BibleSource).referenceText)
+        }
+    }
+
+    @Test
     fun `the verse range boxes appear once a chapter has verses`() {
         sourcePanel(Fixture.bible(), appSettings = settingsWithBible()) { _ ->
             awaitBibleLoaded()
@@ -594,6 +618,26 @@ class SourcePropertiesBibleTest {
     }
 
     @Test
+    fun `a verse range typed out of order or not as a number keeps the range readable`() {
+        sourcePanel(Fixture.bible(), appSettings = settingsWithBible()) { get ->
+            awaitBibleLoaded()
+            waitUntil("the verse range boxes must appear", timeoutMillis = 5_000) { countOf("START VERSE") == 1 }
+
+            typeField(LoadedField.END_VERSE, "3")
+            typeField(LoadedField.START_VERSE, "2")
+            typeField(LoadedField.START_VERSE, "two")
+            typeField(LoadedField.END_VERSE, "three")
+            onNodeWithText("Insert Verse").performScrollTo().performClick()
+            waitForIdle()
+
+            assertEquals(
+                "Genesis 1:2-3", (get() as SceneSource.BibleSource).referenceText,
+                "a start inside the range leaves the end where it was, and text that is no number changes nothing",
+            )
+        }
+    }
+
+    @Test
     fun `the styling controls still work with a Bible loaded`() {
         sourcePanel(Fixture.bible(), appSettings = settingsWithBible()) { get ->
             awaitBibleLoaded()
@@ -610,7 +654,7 @@ class SourcePropertiesBibleTest {
 
     @Test
     fun `neither style row carries a text-backing control`() = sourcePanel(Fixture.bible()) { _ ->
-        onAllNodesWithText("B").assertCountEquals(2)
+        onAllNodesWithContentDescription("Bold").assertCountEquals(2)
         onAllNodesWithText("A").assertCountEquals(0)
     }
 }

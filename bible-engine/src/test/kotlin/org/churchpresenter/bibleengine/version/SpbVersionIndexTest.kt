@@ -120,7 +120,7 @@ class SpbVersionIndexTest {
         val c = writeSpb(
             "ENG_CCC.spb", "CCC",
             rich.mapIndexed { i, v ->
-                v.copy(third = "текст${i} совсем другими незнакомыми выражениями оборотами лексикой перевода")
+                v.copy(third = "текст$i совсем другими незнакомыми выражениями оборотами лексикой перевода")
             },
         )
         val indexes = listOf(a, b, c).map { assertNotNull(SpbVersionIndex.build(it, mutableMapOf())) }
@@ -237,5 +237,12 @@ class SpbVersionIndexTest {
         assertNull(SpbVersionIndex.packCode("nonsense"))
         assertNull(SpbVersionIndex.packCode("BxxxCyyyVzzz"))
         assertEquals(40_018_013, SpbVersionIndex.packCode("B040C018V013"))
+    }
+
+    @Test fun `a code is rejected when any one of its parts is not a number`() {
+        assertNull(SpbVersionIndex.packCode("X040C018V013"))
+        assertNull(SpbVersionIndex.packCode("B040Cx18V013"))
+        assertNull(SpbVersionIndex.packCode("B040C018V0x3"))
+        assertNull(SpbVersionIndex.packCode("B040C018V01"))
     }
 }

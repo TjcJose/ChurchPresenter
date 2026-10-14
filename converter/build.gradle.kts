@@ -10,14 +10,8 @@ plugins {
 
 group = "org.churchpresenter"
 
-// `**/`-prefixed, like every other module: the classes moved from the root package into
-// org/churchpresenter/converter/, and the unanchored form stopped matching them — which
-// silently pulled the whole UI back into the measured set. Same scope as before, not wider.
-extra["coverageExcludes"] = listOf("**/ui/**", "**/MainKt*", "**/ComposableSingletons*")
-
-extra["coverageFloors"] = mapOf(
-    "COMPLEXITY" to "0.80",
-)
+// The default exclude only: the Compose UI and `main` are measured like everything else.
+extra["coverageExcludes"] = listOf("**/ComposableSingletons*")
 
 kotlin {
     jvmToolchain(21)
@@ -30,6 +24,8 @@ dependencies {
     implementation(projects.theme)
     // The chord grammar songs are written in, shared with the app rather than repeated here.
     implementation(projects.songChords)
+    // The song-file decode (UTF-8, else Windows-1251), shared with the app's song library.
+    implementation(projects.coreModels)
     // Keynote text, for the Documents source. The IWA reader that answers it lives there already;
     // this module takes it rather than parsing the format a second time.
     implementation(projects.presentationEngine)
@@ -49,6 +45,7 @@ dependencies {
     implementation(libs.apache.poi.scratchpad)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.compose.uiTestJunit4)
 }
 
 detekt {
@@ -81,8 +78,8 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     }
 }
 
-// The converter also ships as a standalone desktop app (.github/workflows/converter-installers.yml
-// packages it), separately from the copy the main app opens from its Help menu.
+// The converter ships inside the app, opened from its Help menu, and is not released on its own.
+// This is what `./gradlew :converter:run` starts it alone with, and what packages it by hand.
 compose.desktop {
     application {
         mainClass = "org.churchpresenter.converter.MainKt"

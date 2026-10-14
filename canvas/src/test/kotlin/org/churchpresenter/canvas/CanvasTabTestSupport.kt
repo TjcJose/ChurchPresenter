@@ -50,10 +50,16 @@ internal class CanvasReports {
     /** sceneId to sceneName, exactly as the schedule would be given them. */
     val scheduled = mutableListOf<Pair<String, String>>()
     var settingsChanges = 0
+
+    /** The settings as every reported change, applied in order, leaves them. */
+    var settings = AppSettings()
+
     /** Each scene Go Live put on the output, in order. */
     val presented = mutableListOf<Scene>()
+
     /** What was reported as having gone live -- the statistics' and the schedule's record of it. */
     val wentLive = mutableListOf<ScheduleItem>()
+
     /** sceneId to sceneName, for each Save preset. */
     val presets = mutableListOf<Pair<String, String>>()
 }
@@ -109,7 +115,10 @@ internal fun canvasTab(
                         CompositionLocalProvider(LocalWentLive provides { reports.wentLive += it }) {
                         CanvasTab(
                             appSettings = settings(AppSettings()),
-                            onSettingsChange = { reports.settingsChanges++ },
+                            onSettingsChange = { change ->
+                                reports.settingsChanges++
+                                reports.settings = change(reports.settings)
+                            },
                             onPresentScene = { reports.presented += it },
                             sceneViewModel = vm,
                             onAddToSchedule = { id, name -> reports.scheduled += id to name },
@@ -154,6 +163,7 @@ internal object CanvasLabel {
     const val TOGGLE_LOCK = "Toggle lock"
     const val MOVE_FORWARD = "Move forward"
     const val MOVE_BACKWARD = "Move backward"
+
     // The Add-source menu offers eleven types; each is also the name the new source is given, which
     // is what makes `sourceNames()` enough to tell them apart.
     const val IMAGE = "Image"

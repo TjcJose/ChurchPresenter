@@ -721,6 +721,7 @@
     <string name="schedule_option_buttons">Buttons</string>
     <string name="toggle_menu_count">%1$d of %2$d</string>
     <string name="toggle_menu_show_all">Show all</string>
+    <string name="toggle_menu_always">Always</string>
 
     <!-- Add Label Dialog -->
     <string name="add_label">Add Label</string>
@@ -1246,6 +1247,7 @@
     <string name="remove_from_favorites">Remove from favorites</string>
     <string name="song_play_count">Plays</string>
     <string name="song_columns">Filter columns</string>
+    <string name="song_columns_show_in_list">Show in list</string>
     <string name="bible_no_primary_title">No Primary Bible Configured</string>
     <string name="bible_no_primary_hint">Open ⚙ Settings and go to the Bible tab, then:</string>
     <string name="bible_no_primary_step1">1. Set the Bible storage directory</string>
@@ -1619,6 +1621,7 @@
     <string name="remote_api_qa_done">Q&amp;A: Mark as Done</string>
     <string name="remote_api_qa_display">Q&amp;A: Go Live</string>
     <string name="remote_api_qa_clear_display">Q&amp;A: Clear Display</string>
+    <string name="remote_api_qa_clear_all">Q&amp;A: Clear All Questions</string>
     <string name="remote_api_qa_admin_connect">Connect to Q&amp;A Admin</string>
     <string name="remote_api_qa_admin_connect_detail">A phone or tablet wants to moderate Q&amp;A questions.</string>
     <string name="remote_api_musician_connect">Connect a Transpose Control</string>
@@ -1653,6 +1656,7 @@
     <string name="remote_activity_qa_done">Q&amp;A Question Done</string>
     <string name="remote_activity_qa_display">Q&amp;A Question Live</string>
     <string name="remote_activity_qa_clear_display">Q&amp;A Display Cleared</string>
+    <string name="remote_activity_qa_clear_all">Q&amp;A Questions Cleared</string>
     <string name="remote_activity_by">by %1$s</string>
     <string name="remote_activity_dismiss">Dismiss</string>
     <string name="remote_activity_dismiss_all">Dismiss All</string>
@@ -1981,6 +1985,7 @@
     <string name="qa_confirm_delete_prompt">Delete?</string>
     <string name="qa_submitter_device">Device: %1$s</string>
     <string name="qa_public_access">Public Access</string>
+    <string name="tunnel_unprotected_warning">Public access opens every remote control to the internet, not only this page. Turn on the API key in Settings → Server to protect them.</string>
     <string name="qa_public_access_description">Let users submit questions via mobile data without joining your WiFi</string>
     <string name="qa_enable_public_access">Enable Public Access</string>
     <string name="qa_disable_public_access">Disable Public Access</string>
@@ -2086,6 +2091,7 @@
     <string name="update_dialog_downloading">Downloading...</string>
     <string name="update_dialog_install_now">Install Now</string>
     <string name="update_dialog_open_page">Open Download Page</string>
+    <string name="update_dialog_unverified">The installer could not be verified against the release, so it was not run. Download it from the release page instead.</string>
     <string name="update_already_latest">You are running the latest version.</string>
     <string name="update_dialog_up_to_date_title">You're Up to Date</string>
     <string name="update_dialog_view_on_github">View on GitHub</string>
@@ -2537,6 +2543,10 @@
     <string name="quick_backgrounds">Quick backgrounds</string>
     <string name="quick_backgrounds_help">Backgrounds the preview panel keeps one click away. Click a tile to choose what it shows, drag it to change which key reaches it. Picking one during a service overrides every screen until you go back to normal — it changes nothing here.</string>
     <string name="quick_background_add">Add a background</string>
+    <string name="timer_step_increase">Increase %1$s</string>
+    <string name="timer_step_decrease">Decrease %1$s</string>
+    <string name="dropdown_show_list">Show the list</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
     <string name="shortcut_description_quick_background_reset">Quick background: back to normal</string>
     <string name="shortcut_description_quick_background_1">Quick background 1</string>
     <string name="shortcut_description_quick_background_2">Quick background 2</string>

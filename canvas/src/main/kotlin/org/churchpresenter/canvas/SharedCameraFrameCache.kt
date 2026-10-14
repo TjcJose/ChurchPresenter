@@ -57,6 +57,10 @@ object SharedCameraFrameCache {
     @get:Synchronized
     internal val liveCaptureCount: Int get() = entries.size
 
+    /** The capture coroutine behind each live entry, by cache key — read-only, so a test can wait for it. */
+    @get:Synchronized
+    internal val liveCaptureJobs: Map<String, Job?> get() = entries.mapValues { (_, entry) -> entry.captureJob }
+
     /** Build a unique key for a camera source. */
     fun keyFor(source: SceneSource.CameraSource): String {
         return if (source.isDeckLink && source.deckLinkIndex >= 0) {
@@ -221,7 +225,7 @@ object SharedCameraFrameCache {
     /** Frames read into [entry] until the stream stops; the count is the caller's success signal. */
     private suspend fun readFramesInto(process: Process, entry: CacheEntry, videoW: Int, videoH: Int): Int {
         val frameBytes = videoW * videoH * 4  // BGRA = 4 bytes per pixel
-        Log.info("Camera", "Capturing ${videoW}x${videoH} rawvideo BGRA ($frameBytes bytes/frame)")
+        Log.info("Camera", "Capturing ${videoW}x$videoH rawvideo BGRA ($frameBytes bytes/frame)")
 
         val inputStream = process.inputStream
         val frameBuf = ByteArray(frameBytes)
@@ -239,7 +243,7 @@ object SharedCameraFrameCache {
             entry.frame.value = img.toComposeImageBitmap()
             frameCount++
             if (frameCount == 1) {
-                Log.info("Camera", "First frame received (${videoW}x${videoH})")
+                Log.info("Camera", "First frame received (${videoW}x$videoH)")
             }
         }
         return frameCount
@@ -363,7 +367,6 @@ object SharedCameraFrameCache {
         loop.run()
         loop.reportIfGaveUp()
     }
-
 }
 
 /** One camera's shared state: the frames on screen, why they stopped, and who is still watching. */
@@ -430,22 +433,23 @@ private fun CoroutineScope.startStderrDrain(process: Process): StderrDrain {
 }
 
 /** Waits up to five seconds for ffmpeg to announce the stream's size. */
-private suspend fun awaitVideoDimensions(
+internal suspend fun awaitVideoDimensions(
     videoDims: java.util.concurrent.atomic.AtomicReference<Pair<Int, Int>?>,
+    intervalMs: Long = DIMENSION_POLL_INTERVAL_MS,
 ): Pair<Int, Int>? {
     repeat(DIMENSION_POLL_ATTEMPTS) {
         videoDims.get()?.let { return it }
-        delay(DIMENSION_POLL_INTERVAL_MS)
+        delay(intervalMs)
     }
     return videoDims.get()
 }
 
 /** Kills whatever is left of the previous attempt and lets the OS hand the device back. */
-internal suspend fun releaseLingeringProcess(entry: CacheEntry) {
+internal suspend fun releaseLingeringProcess(entry: CacheEntry, settleMs: Long = DEVICE_RELEASE_DELAY_MS) {
     val old = entry.ffmpegProcess ?: return
     withContext(Dispatchers.IO) { killFfmpegProcess(old) }
     entry.ffmpegProcess = null
-    delay(DEVICE_RELEASE_DELAY_MS)
+    delay(settleMs)
 }
 
 /**
@@ -522,7 +526,7 @@ internal fun buildFfmpegCommand(
         val match = Regex("""(\d+)x(\d+)@(\d+)""").find(source.videoFormat)
         if (match != null) {
             val (w, h, fps) = match.destructured
-            listOf("-video_size", "${w}x${h}", "-framerate", fps)
+            listOf("-video_size", "${w}x$h", "-framerate", fps)
         } else emptyList()
     } else emptyList()
 

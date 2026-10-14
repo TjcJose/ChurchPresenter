@@ -20,7 +20,7 @@ class SttPayloadTest {
     private fun payload(json: String) = transcriptionUpdate(JSONObject(json))
 
     // ── JSON null must not become the string "null" ─────────────────────────────
-    // org.json's optString returns "null" for a JSON null rather than the supplied default, so the
+    // Up to org.json 20230618, optString returns "null" for a JSON null rather than the default, so the
     // obvious `optString(k, "").takeIf { it.isNotEmpty() }` accepts it as a real value. This was
     // live: detection-log rows and operator-flag rows carried "segmentId":"null", a fake join key
     // matching every other such row.
@@ -85,5 +85,42 @@ class SttPayloadTest {
     @Test fun `blank and whitespace ids are treated as absent`() {
         val u = assertNotNull(payload("""{"segment_id":"   ","in_progress":{"text":"for god so loved"}}"""))
         assertNull(u.segmentId)
+    }
+
+    @Test fun `a newest segment with a null id falls back to the top-level id`() {
+        val u = assertNotNull(payload("""{"segments":[{"text":"for god so loved","id":null}],"id":5}"""))
+        assertEquals("5", u.segmentId)
+    }
+
+    @Test fun `a newest segment with no id or start falls back to the payload's own`() {
+        val u = assertNotNull(
+            payload("""{"segments":[{"text":"for god so loved"}],"segment_id":"top","start":2.5}""")
+        )
+        assertEquals("top", u.segmentId)
+        assertEquals(2.5, u.startTime)
+    }
+
+    @Test fun `the start time prefers the in-progress segment, then the newest completed one`() {
+        assertEquals(
+            4.0,
+            payload(
+                """{"segments":[{"text":"a","start":1.0}],"in_progress":{"text":"b","start_time":4.0}}""",
+            )?.startTime,
+        )
+        assertEquals(1.0, payload("""{"segments":[{"text":"a","start":1.0}],"in_progress":{"text":"b"}}""")?.startTime)
+    }
+
+    @Test fun `a payload with nothing to time or identify carries neither`() {
+        val u = assertNotNull(payload("""{"segments":["not an object",{"text":"for god"}]}"""))
+        assertNull(u.startTime)
+        assertNull(u.sessionId)
+    }
+
+    @Test fun `a non-object newest segment is passed over`() {
+        val u = assertNotNull(
+            payload("""{"segments":[{"text":"for god"},"tail"],"segment_id":"top","start_time":3.0}"""),
+        )
+        assertEquals("top", u.segmentId)
+        assertEquals(3.0, u.startTime)
     }
 }

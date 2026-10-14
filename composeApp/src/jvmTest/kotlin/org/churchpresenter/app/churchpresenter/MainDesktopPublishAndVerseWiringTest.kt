@@ -18,6 +18,7 @@ import org.churchpresenter.media.viewmodel.LocalMediaViewModel
 import org.churchpresenter.settings.AppSettings
 import org.churchpresenter.settings.BibleSettings
 import org.churchpresenter.settings.BibleTranslationSettings
+import org.churchpresenter.sharedui.models.Presenting
 import org.churchpresenter.sharedui.models.Tabs
 import org.churchpresenter.sharedui.utils.LocalShortcuts
 import org.churchpresenter.sharedui.utils.ShortcutMap
@@ -39,6 +40,7 @@ class MainDesktopPublishAndVerseWiringTest : MainDesktopComposeHarness() {
         val slideChanges = mutableListOf<Pair<String, Int>>()
         val slidesLoaded = mutableListOf<Pair<String, Int>>()
         val versesLive = mutableListOf<List<SelectedVerse>>()
+        val presented = mutableListOf<Presenting>()
     }
 
     private fun ComposeUiTest.compose(
@@ -58,7 +60,7 @@ class MainDesktopPublishAndVerseWiringTest : MainDesktopComposeHarness() {
                         presenterManager = PresenterManager(),
                         companionSatelliteViewModel = CompanionSatelliteViewModel(),
                         live = LiveOutputCallbacks(
-                            presenting = {},
+                            presenting = { published.presented += it },
                             onVerseSelected = { published.versesLive += it },
                             onSongItemSelected = {},
                             devMode = false,
@@ -104,12 +106,19 @@ class MainDesktopPublishAndVerseWiringTest : MainDesktopComposeHarness() {
             upload.tryEmit(file)
             // The slides load one by one, each reported as it lands; wait for the whole deck.
             waitUntil(timeoutMillis = 10_000) { stableFileId(file) to 2 in published.slideChanges }
-            assertTrue(published.slidesLoaded.isEmpty(), "remote control is off, so the slides stay here")
+            // An upload opens the Presentation tab, which reports the finished deck itself; wait for
+            // that, so what follows is the root's own publish and not the tab's arriving late.
+            waitUntil(timeoutMillis = 10_000) { stableFileId(file) to 2 in published.slidesLoaded }
+            val before = published.slidesLoaded.size
 
             val remote = settings.value.presentationRemoteSettings.copy(remoteControlEnabled = true)
             settings.value = settings.value.copy(presentationRemoteSettings = remote)
-            waitUntil(timeoutMillis = 10_000) { published.slidesLoaded.isNotEmpty() }
-            assertEquals(stableFileId(file) to 2, published.slidesLoaded.last())
+            waitUntil(timeoutMillis = 10_000) { published.slidesLoaded.size > before }
+            assertEquals(
+                stableFileId(file) to 2,
+                published.slidesLoaded.last(),
+                "switching remote control on hands the deck over",
+            )
         }
 
     private fun bibleSettings(): AppSettings {
@@ -144,6 +153,7 @@ class MainDesktopPublishAndVerseWiringTest : MainDesktopComposeHarness() {
         takeLive("Genesis")
         waitUntil(timeoutMillis = 10_000) { published.versesLive.isNotEmpty() }
         assertEquals(2, published.versesLive.last().first().verseNumber)
+        assertEquals(listOf(Presenting.BIBLE), published.presented, "and the output switched to it, once")
     }
 
     @Test

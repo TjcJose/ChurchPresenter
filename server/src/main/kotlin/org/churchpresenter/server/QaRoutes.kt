@@ -190,7 +190,6 @@ private fun Route.qaVotingRoutes(
                 // Admin: check password
 }
 
-
 private fun Route.qaModerationRoutes(
     server: CompanionServer,
     json: Json,
@@ -311,8 +310,7 @@ private fun Route.qaQuestionEditRoutes(
                     if (ok) {
                         if (server.qaManager?.displayedQuestion == null) scope.launch { server.onQADisplay.emit(null) }
                         call.respondText("""{"ok":true}""", ContentType.Application.Json)
-                    }
-                    else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
+                    } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
 
                 // Admin: mark question as done
@@ -345,8 +343,7 @@ private fun Route.qaQuestionStateRoutes(
                     if (ok) {
                         if (server.qaManager?.displayedQuestion == null) scope.launch { server.onQADisplay.emit(null) }
                         call.respondText("""{"ok":true}""", ContentType.Application.Json)
-                    }
-                    else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
+                    } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
 
                 // Admin: display question on projection
@@ -374,8 +371,7 @@ private fun Route.qaQuestionStateRoutes(
                     if (ok) {
                         scope.launch { server.onQADisplay.emit(qa.displayedQuestion) }
                         call.respondText("""{"ok":true}""", ContentType.Application.Json)
-                    }
-                    else call.respond(HttpStatusCode.NotFound, """{"error":"question not found or not approved"}""")
+                    } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found or not approved"}""")
                 }
 
                 // Admin: delete question
@@ -412,8 +408,6 @@ private fun Route.qaQuestionDeleteRoutes(
 
                 // Admin: add question (admin-created)
 }
-
-
 
 private fun Route.qaAdminActionRoutes(
     server: CompanionServer,
@@ -470,8 +464,14 @@ private fun Route.qaAdminActionRoutes(
                 // Admin: clear all questions
                 post("/api/qa/clear-all") {
                     if (!server.checkQaAdmin(call)) return@post
+                    val clientId = call.request.headers["X-Device-Id"] ?: ""
+                    val pending = CompanionServer.PendingQAAdminRequest(action = "clear-all", clientId = clientId)
+                    server.onQAAdminRequest.emit(pending)
+                    if (!pending.decision.await()) {
+                        call.respond(HttpStatusCode.Forbidden, """{"error":"denied"}""")
+                        return@post
+                    }
                     server.qaManager?.clearAll()
                     call.respondText("""{"ok":true}""", ContentType.Application.Json)
                 }
 }
-

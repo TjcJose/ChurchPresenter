@@ -36,8 +36,8 @@ data class SongDto(
 /** One songbook entry — contains its songs inline. */
 @Serializable
 data class SongbookEntry(
-    @kotlinx.serialization.SerialName("book-name")   val bookName: String,
-    @kotlinx.serialization.SerialName("song-total")  val songTotal: Int,
+    @kotlinx.serialization.SerialName("book-name") val bookName: String,
+    @kotlinx.serialization.SerialName("song-total") val songTotal: Int,
     val songs: List<SongDto>
 )
 
@@ -256,8 +256,8 @@ data class BibleChapterDto(
 
 @Serializable
 data class BibleBookDto(
-    @kotlinx.serialization.SerialName("book-id")      val bookId: Int,
-    @kotlinx.serialization.SerialName("book-name")    val bookName: String,
+    @kotlinx.serialization.SerialName("book-id") val bookId: Int,
+    @kotlinx.serialization.SerialName("book-name") val bookName: String,
     @kotlinx.serialization.SerialName("chapter-total") val chapterTotal: Int,
     val chapters: List<BibleChapterDto>
 )
@@ -265,7 +265,7 @@ data class BibleBookDto(
 @Serializable
 data class BibleVerseDto(
     @kotlinx.serialization.SerialName("verse") val verse: Int,
-    @kotlinx.serialization.SerialName("text")  val text: String
+    @kotlinx.serialization.SerialName("text") val text: String
 )
 
 /**
@@ -283,8 +283,8 @@ data class BibleVerseDto(
 @Serializable
 data class BibleChapterResponse(
     val translation: String,
-    @kotlinx.serialization.SerialName("book-id")    val bookId: Int,
-    @kotlinx.serialization.SerialName("book-name")  val bookName: String,
+    @kotlinx.serialization.SerialName("book-id") val bookId: Int,
+    @kotlinx.serialization.SerialName("book-name") val bookName: String,
     val chapter: Int,
     @kotlinx.serialization.SerialName("verse-total") val verseTotal: Int,
     val verses: List<BibleVerseDto>
@@ -307,7 +307,7 @@ data class BibleChapterResponse(
 data class BibleCatalogResponse(
     val translation: String,
     val books: List<BibleBookDto>,
-    @kotlinx.serialization.SerialName("book-total")  val bookTotal: Int,
+    @kotlinx.serialization.SerialName("book-total") val bookTotal: Int,
     @kotlinx.serialization.SerialName("verse-total") val verseTotal: Int
 )
 
@@ -339,8 +339,8 @@ data class SlideDto(
 @Serializable
 data class PresentationDto(
     val id: String,
-    @kotlinx.serialization.SerialName("file-name")   val fileName: String,
-    @kotlinx.serialization.SerialName("file-type")   val fileType: String,
+    @kotlinx.serialization.SerialName("file-name") val fileName: String,
+    @kotlinx.serialization.SerialName("file-type") val fileType: String,
     @kotlinx.serialization.SerialName("slide-total") val slideTotal: Int,
     val slides: List<SlideDto>
 )
@@ -363,8 +363,8 @@ data class PresentationCatalogResponse(
 
 @Serializable
 data class PictureFileDto(
-    @kotlinx.serialization.SerialName("index")         val index: Int,
-    @kotlinx.serialization.SerialName("file-name")     val fileName: String,
+    @kotlinx.serialization.SerialName("index") val index: Int,
+    @kotlinx.serialization.SerialName("file-name") val fileName: String,
     @kotlinx.serialization.SerialName("thumbnail-url") val thumbnailUrl: String
 )
 
@@ -380,10 +380,10 @@ data class PictureFileDto(
  */
 @Serializable
 data class PictureFolderResponse(
-    @kotlinx.serialization.SerialName("folder-id")    val folderId: String,
-    @kotlinx.serialization.SerialName("folder-name")  val folderName: String,
-    @kotlinx.serialization.SerialName("folder-path")  val folderPath: String,
-    @kotlinx.serialization.SerialName("image-total")  val imageTotal: Int,
+    @kotlinx.serialization.SerialName("folder-id") val folderId: String,
+    @kotlinx.serialization.SerialName("folder-name") val folderName: String,
+    @kotlinx.serialization.SerialName("folder-path") val folderPath: String,
+    @kotlinx.serialization.SerialName("image-total") val imageTotal: Int,
     val images: List<PictureFileDto>
 )
 
