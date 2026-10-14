@@ -408,12 +408,17 @@ private fun hymnGoLiveAtSlide(
         val current = slidesViewModel.slideFiles.getOrNull(index)?.let { file ->
             withContext(Dispatchers.IO) { decodeSlide(file) }
         }
-        val next = slidesViewModel.nextShownSlideIndex(index)
+        val nextIndex = slidesViewModel.nextShownSlideIndex(index)
+        val next = nextIndex
             ?.let { slidesViewModel.slideFiles.getOrNull(it) }
             ?.let { file -> withContext(Dispatchers.IO) { decodeSlide(file) } }
         presenterManager.setSelectedSlide(current)
         presenterManager.setLiveSlide(slidesViewModel.selectedPresentation?.name, index)
-        presenterManager.setNextSlide(next)
+        if (next != null) {
+            presenterManager.setNextSlide(next)
+        } else {
+            presenterManager.setNextSlide(null)
+        }
         presenterManager.setPresenterNotes(slidesViewModel.slideNotes.getOrElse(index) { "" })
     }
     presenterManager.setPresentingMode(Presenting.PRESENTATION)
