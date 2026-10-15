@@ -60,6 +60,7 @@ import org.churchpresenter.sharedui.models.Presenting
 import org.churchpresenter.sharedui.utils.LocalShortcuts
 import org.churchpresenter.slides.SlidesOutput
 import org.churchpresenter.slides.tabs.PresentationLiveSlideEffect
+import org.churchpresenter.slides.tabs.PresentationNextSlideEffect
 import org.churchpresenter.slides.tabs.SlideThumbnail
 import org.churchpresenter.slides.tabs.presentationGoesBack
 import org.churchpresenter.slides.tabs.presentationGoesForward
@@ -112,10 +113,7 @@ internal fun HymnSlidePane(
         if (slidesViewModel.slideFiles.isNotEmpty()) focusRequester.requestFocus()
     }
 
-    // Once the hymn is on a screen, the selection drives the projection, exactly as it does in the
-    // Presentation tab: the arrow keys (and the toolbar's Previous/Next) then page the projected
-    // slide, not merely the thumbnails. Starting the projection is still the toolbar's Go Live.
-    PresentationLiveSlideEffect(slidesViewModel, presenterManager)
+    HymnLiveSlideEffects(slidesViewModel, presenterManager)
 
     Column(
         modifier = modifier
@@ -444,4 +442,17 @@ private fun decodeSlide(file: File): ImageBitmap? = try {
     org.jetbrains.skia.Image.makeFromEncoded(file.readBytes()).toComposeImageBitmap()
 } catch (_: Exception) {
     null
+}
+
+@Composable
+private fun HymnLiveSlideEffects(
+    slidesViewModel: PresentationViewModel,
+    presenterManager: SlidesOutput?,
+) {
+    // Once the hymn is on a screen, the selection drives the projection, exactly as it does in the
+    // Presentation tab: the arrow keys (and the toolbar's Previous/Next) then page the projected
+    // slide, not merely the thumbnails. Starting the projection is still the toolbar's Go Live.
+    PresentationLiveSlideEffect(slidesViewModel, presenterManager)
+    // Hiding a slide is offered here too, so the stage monitor's "next" follows it.
+    PresentationNextSlideEffect(slidesViewModel, presenterManager)
 }

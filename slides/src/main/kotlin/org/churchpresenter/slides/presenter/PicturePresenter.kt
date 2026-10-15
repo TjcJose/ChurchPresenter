@@ -64,13 +64,15 @@ fun PicturePresenter(
             )
         }
 
-        // Crossfade: both images visible simultaneously, old fades out as new fades in
+        // Crossfade: the incoming image fades in over the outgoing one, which stays fully opaque.
+        // With the old image fading out at the same time (1-t and t over the black background) the
+        // pair composited to ~75% brightness at the midpoint, so every change read as a dip.
         animationType == AnimationType.CROSSFADE && previousImagePath != null -> {
             Box(
                 modifier = modifier.fillMaxSize().background(Color.Black).clipToBounds(),
                 contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 1f - transitionAlpha }) {
+                Box(modifier = Modifier.fillMaxSize()) {
                     ImageContent(previousImagePath, contentScale)
                 }
                 Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = transitionAlpha }) {
@@ -218,7 +220,12 @@ fun SlidePresenter(
                 modifier = modifier.fillMaxSize().background(Color.Black).clipToBounds(),
                 contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 1f - transitionAlpha }) {
+                // Keep the outgoing slide fully opaque and fade the incoming one over it: with
+                // both alphas moving (1-t and t) the pair composited toward the black background
+                // and the screen visibly dipped to ~75% brightness at the midpoint of every
+                // page change. Anchoring the old slide holds the brightness until the new one
+                // has blended in, the PowerPoint-style dissolve.
+                Box(modifier = Modifier.fillMaxSize()) {
                     SlideBitmapContent(previousSlide)
                 }
                 Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = transitionAlpha }) {

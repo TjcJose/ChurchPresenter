@@ -189,25 +189,7 @@ internal fun PresentationTabScope.PresentationLiveEffects(viewModel: Presentatio
 
     PresentationLiveSlideEffect(viewModel, presenterManager)
 
-    // Hiding or showing a slide can change which one comes next, so the stage monitor's "next"
-    // is refreshed -- and only that. Re-pushing the live slide here restarted its animation.
-    LaunchedEffect(viewModel.hiddenSlides) {
-        val onPresentation = presenterManager?.isLive(Presenting.PRESENTATION) == true ||
-            presenterManager?.presentationCued == true ||
-            presenterManager?.screenLocks?.value?.values?.any { it == Presenting.PRESENTATION } == true
-        if (!onPresentation) return@LaunchedEffect
-        val nextFile = viewModel.nextShownSlideIndex()?.let { viewModel.slideFiles.getOrNull(it) }
-        val nextBitmap = nextFile?.let { f ->
-            withContext(Dispatchers.IO) {
-                try {
-                    org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
-                } catch (_: Exception) {
-                    null
-                }
-            }
-        }
-        presenterManager.setNextSlide(nextBitmap)
-    }
+    PresentationNextSlideEffect(viewModel, presenterManager)
 
     LaunchedEffect(viewModel.animationType, viewModel.transitionDuration) {
         presenterManager?.setAnimationType(viewModel.animationType)
@@ -226,7 +208,13 @@ internal fun PresentationTabScope.PresentationLiveEffects(viewModel: Presentatio
  */
 @Composable
 fun PresentationLiveSlideEffect(viewModel: PresentationViewModel, presenterManager: SlidesOutput?) {
-    LaunchedEffect(viewModel.selectedSlideIndex, viewModel.slideFiles.size) {
+    // Trigger on the selected slide's actual file path rather than the slide-count: while a deck
+    // is loaded its slides land one at a time, but only the selected slide must drive the
+    // projection. Keying on the count re-fired this effect on every arrival, re-decoded the same
+    // slide into a fresh bitmap and re-ran the transition, which read as a repeated flash.
+    val idx = viewModel.selectedSlideIndex
+    val selectedSlidePath = viewModel.slideFiles.getOrNull(idx)?.absolutePath
+    LaunchedEffect(idx, selectedSlidePath) {
         val manager = presenterManager ?: return@LaunchedEffect
         val idx = viewModel.selectedSlideIndex
         val enterAtLastStep = viewModel.consumeEnteredViaPreviousSlide()
@@ -262,5 +250,35 @@ fun PresentationLiveSlideEffect(viewModel: PresentationViewModel, presenterManag
             viewModel.deck?.let { manager.presentationShowSlide(it, idx, enterAtLastStep) }
                 ?: manager.clearPresentationPlayback()
         }
+    }
+}
+
+/**
+ * Hiding or showing a slide changes which one comes next, so the next slide is refreshed -- and
+ * only that. Re-pushing the live slide here restarted its transition, which read as a flash, so
+ * this effect deliberately leaves the displayed slide alone.
+ *
+ * The Presentation tab runs this with its other live effects; the Hymn tab runs it beside
+ * [PresentationLiveSlideEffect], since hiding slides is offered there too.
+ */
+@Composable
+fun PresentationNextSlideEffect(viewModel: PresentationViewModel, presenterManager: SlidesOutput?) {
+    LaunchedEffect(viewModel.hiddenSlides) {
+        val manager = presenterManager ?: return@LaunchedEffect
+        val onPresentation = manager.isLive(Presenting.PRESENTATION) ||
+            manager.presentationCued ||
+            manager.screenLocks?.value?.values?.any { it == Presenting.PRESENTATION } == true
+        if (!onPresentation) return@LaunchedEffect
+        val nextFile = viewModel.nextShownSlideIndex()?.let { viewModel.slideFiles.getOrNull(it) }
+        val nextBitmap = nextFile?.let { f ->
+            withContext(Dispatchers.IO) {
+                try {
+                    org.jetbrains.skia.Image.makeFromEncoded(f.readBytes()).toComposeImageBitmap()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        }
+        manager.setNextSlide(nextBitmap)
     }
 }
