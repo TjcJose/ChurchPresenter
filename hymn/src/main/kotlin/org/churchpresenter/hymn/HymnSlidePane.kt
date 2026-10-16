@@ -33,6 +33,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onKeyEvent
@@ -77,6 +78,7 @@ import org.churchpresenter.strings.generated.resources.presentation_error_passwo
 import org.churchpresenter.strings.generated.resources.presentation_error_render_failed
 import org.churchpresenter.theme.components.KeyIconButton
 import org.churchpresenter.theme.components.RaisedButton
+import org.churchpresenter.theme.keyboardFocusRing
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import java.io.File
@@ -131,6 +133,9 @@ internal fun HymnSlidePane(
                 }
             }
             .onFocusChanged { rootFocused = it.isFocused }
+            // The whole pane takes the arrow keys; Tab landing on it is shown by a ring just inside
+            // it, as the Presentation tab does for its body.
+            .keyboardFocusRing(RectangleShape, inset = true)
             .focusable()
             .onKeyEvent { event ->
                 // One page per press: Compose delivers a KeyDown and a KeyUp, and the chord
@@ -426,17 +431,6 @@ private fun hymnGoLiveAtSlide(
         wentLive(hymnPresentationRow(file, slidesViewModel.slideFiles.size))
     }
 }
-
-/** The open deck as the schedule row that identifies it — the same shape Add to Schedule builds. */
-internal fun hymnPresentationRow(file: File, slideCount: Int): ScheduleItem.PresentationItem =
-    ScheduleItem.PresentationItem(
-        id = java.util.UUID.randomUUID().toString(),
-        filePath = file.absolutePath,
-        fileName = file.nameWithoutExtension,
-        slideCount = slideCount,
-        fileType = file.extension.lowercase(),
-        hymnNumber = file.nameWithoutExtension,
-    )
 
 private fun decodeSlide(file: File): ImageBitmap? = try {
     org.jetbrains.skia.Image.makeFromEncoded(file.readBytes()).toComposeImageBitmap()

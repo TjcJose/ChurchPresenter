@@ -38,6 +38,7 @@ internal class MainDesktopViewModels(
 ) {
     val picturesViewModel = PicturesViewModel(appSettings)
     val presentationViewModel = PresentationViewModel(appSettings)
+
     // The Hymn tab keeps its own presentation model, separate from the Presentation tab's, so
     // loading a hymn never clobbers what the Presentation tab has open. Hoisted like the rest, so
     // the hymn selected and the track playing survive a switch to another tab.

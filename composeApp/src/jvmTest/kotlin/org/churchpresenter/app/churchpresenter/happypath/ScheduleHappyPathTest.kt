@@ -88,7 +88,7 @@ class ScheduleHappyPathTest : HappyPathHarness() {
             repeat(2) { doc.addPage(PDPage()) }
             doc.save(deck)
         }
-        app.actions.addPresentation(deck.absolutePath, deck.name, 2, "pdf")
+        app.actions.addPresentation(deck.absolutePath, deck.name, 2, "pdf", "")
         waitForIdle()
 
         takeRowLive("Sermon.pdf")

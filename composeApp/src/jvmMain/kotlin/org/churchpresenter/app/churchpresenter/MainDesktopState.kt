@@ -45,6 +45,7 @@ internal class MainDesktopState(
     var selectedPictureItemVersion by mutableStateOf(0)
     var selectedPresentationItem by mutableStateOf<ScheduleItem.PresentationItem?>(null)
     var selectedPresentationItemVersion by mutableStateOf(0)
+
     /** A hymn row the Hymn tab is to bring back on screen — a schedule presentation with a hymn number. */
     var selectedHymnItem by mutableStateOf<ScheduleItem.PresentationItem?>(null)
     var selectedHymnItemVersion by mutableStateOf(0)

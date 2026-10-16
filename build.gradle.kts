@@ -112,6 +112,20 @@ subprojects {
     }
 }
 
+// The suites assert on English labels, and most of them compose the screen directly rather than
+// through AppRootState, which is what calls Locale.setDefault: the default locale a test JVM starts
+// with is the machine's, and on a machine set to another language every one of those assertions
+// fails for a reason that has nothing to do with the code. CI's runners are English, so nothing
+// changes there -- this makes every other machine behave like them. A test that wants another
+// language sets it itself (Locale.setDefault / Strings.setLocale), so this pins only where one
+// starts.
+subprojects {
+    tasks.withType<Test>().configureEach {
+        systemProperty("user.language", "en")
+        systemProperty("user.country", "US")
+    }
+}
+
 // detekt's ktlint wrapper, for every module that runs detekt: which of its rules are on is
 // `formatting:` in config/detekt/detekt.yml, shared like the rest of that file.
 subprojects {
