@@ -3,6 +3,7 @@ package org.churchpresenter.app.churchpresenter
 import org.churchpresenter.app.churchpresenter.tabs.AppQATab
 import org.churchpresenter.app.churchpresenter.tabs.AppSTTTab
 import org.churchpresenter.crosswordtab.CrosswordTab
+import org.churchpresenter.recording.RecordingTab
 import org.churchpresenter.companionsurface.CompanionSurfaceTab
 import org.churchpresenter.liveoutput.showLowerThird
 import org.churchpresenter.bibletab.selectVerseByBookId
@@ -47,6 +48,12 @@ internal fun MainDesktopScope.TabContentPane(tab: Tabs) {
         Tabs.PICTURES -> PicturesTabPane()
         Tabs.PRESENTATION -> PresentationTabPane()
         Tabs.MEDIA -> MediaTabPane()
+        Tabs.RECORDING -> if (recordingManager != null) {
+            RecordingTab(
+                modifier = Modifier.fillMaxSize(),
+                manager = recordingManager,
+            )
+        }
         Tabs.LOWER_THIRD -> LowerThirdTabPane()
         Tabs.ANNOUNCEMENTS -> AnnouncementsTabPane()
         Tabs.WEB -> WebTabPane()

@@ -11,6 +11,7 @@ import org.churchpresenter.media.viewmodel.MediaViewModel
 import org.churchpresenter.liveoutput.PresenterManager
 import org.churchpresenter.qa.QAManager
 import org.churchpresenter.stt.STTManager
+import org.churchpresenter.recording.RecordingManager
 import org.churchpresenter.settings.AppSettings
 import org.churchpresenter.settings.QuickBackground
 import org.churchpresenter.theme.ThemeMode
@@ -61,6 +62,7 @@ internal class MainDesktopScope(
     val qaManager: QAManager?,
     val onOpenLottieGen: (outputDir: String, onFileSaved: (() -> Unit)?) -> Unit,
     val sttManager: STTManager?,
+    val recordingManager: RecordingManager?,
     val dialogDismissSignal: Int,
     val companionSatelliteViewModel: CompanionSatelliteViewModel,
     val onRequestDeveloperMenuUnlock: () -> Unit,

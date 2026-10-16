@@ -74,6 +74,9 @@ class AccessibleNamesTest : MainDesktopComposeHarness() {
     fun `the MEDIA tab names every control`() = assertEveryControlNamed(Tabs.MEDIA)
 
     @Test
+    fun `the RECORDING tab names every control`() = assertEveryControlNamed(Tabs.RECORDING)
+
+    @Test
     fun `the LOWER_THIRD tab names every control`() = assertEveryControlNamed(Tabs.LOWER_THIRD)
 
     @Test

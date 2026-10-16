@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Language
@@ -103,6 +104,7 @@ internal fun tabIcon(tab: Tabs): ImageVector = when (tab) {
     Tabs.PICTURES -> Icons.Filled.Image
     Tabs.PRESENTATION -> Icons.Filled.Slideshow
     Tabs.MEDIA -> Icons.Filled.Movie
+    Tabs.RECORDING -> Icons.Filled.FiberManualRecord
     Tabs.LOWER_THIRD -> Icons.Filled.Subtitles
     Tabs.ANNOUNCEMENTS -> Icons.Filled.Campaign
     Tabs.WEB -> Icons.Filled.Language

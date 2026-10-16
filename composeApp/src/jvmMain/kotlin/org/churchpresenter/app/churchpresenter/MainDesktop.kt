@@ -21,6 +21,7 @@ import org.churchpresenter.media.viewmodel.LocalMediaViewModel
 import org.churchpresenter.liveoutput.PresenterManager
 import org.churchpresenter.qa.QAManager
 import org.churchpresenter.stt.STTManager
+import org.churchpresenter.recording.RecordingManager
 import org.churchpresenter.diagnostics.CrashReporter
 import org.churchpresenter.settings.AppSettings
 import org.churchpresenter.settings.QuickBackground
@@ -75,6 +76,7 @@ fun MainDesktop(
     qaManager: QAManager? = null,
     onOpenLottieGen: (outputDir: String, onFileSaved: (() -> Unit)?) -> Unit = { _, _ -> },
     sttManager: STTManager? = null,
+    recordingManager: RecordingManager? = null,
     dialogDismissSignal: Int = 0,
     companionSatelliteViewModel: CompanionSatelliteViewModel,
     onRequestDeveloperMenuUnlock: () -> Unit = {},
@@ -106,8 +108,8 @@ fun MainDesktop(
     val scope = remember(
         hostWindow, appSettings, livePreviewAppSettings, activeQuickBackground, onQuickBackgroundPicked,
         presenterManager, statisticsManager, verseSequenceLog, live, service, publish, flows, link, web, onShowSettings,
-        onShowBackgroundSettings, onSettingsChange, theme, qaManager, onOpenLottieGen, sttManager, dialogDismissSignal,
-        companionSatelliteViewModel, onRequestDeveloperMenuUnlock, owned
+        onShowBackgroundSettings, onSettingsChange, theme, qaManager, onOpenLottieGen, sttManager, recordingManager,
+        dialogDismissSignal, companionSatelliteViewModel, onRequestDeveloperMenuUnlock, owned
     ) {
         MainDesktopScope(
             hostWindow = hostWindow,
@@ -131,6 +133,7 @@ fun MainDesktop(
             qaManager = qaManager,
             onOpenLottieGen = onOpenLottieGen,
             sttManager = sttManager,
+            recordingManager = recordingManager,
             dialogDismissSignal = dialogDismissSignal,
             companionSatelliteViewModel = companionSatelliteViewModel,
             onRequestDeveloperMenuUnlock = onRequestDeveloperMenuUnlock,
