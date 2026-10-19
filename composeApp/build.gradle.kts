@@ -163,7 +163,6 @@ kotlin {
             implementation(projects.dictionary)
             implementation(projects.stt)
             implementation(projects.announcements)
-            implementation(projects.recording)
             implementation(projects.helper)
             implementation(projects.songs)
             implementation(projects.hymn)

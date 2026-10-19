@@ -341,7 +341,6 @@ private fun tabLabel(tab: Tabs) = when (tab) {
     Tabs.PICTURES -> "Pictures"
     Tabs.PRESENTATION -> "Presentation"
     Tabs.MEDIA -> "Media"
-    Tabs.RECORDING -> "Recording"
     Tabs.LOWER_THIRD -> "Lower Third"
     Tabs.ANNOUNCEMENTS -> "Announcements"
     Tabs.WEB -> "Web"

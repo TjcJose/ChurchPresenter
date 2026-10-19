@@ -132,8 +132,6 @@ class FocusRingVisibleTest : MainDesktopComposeHarness() {
 
     @Test fun `the MEDIA tab shows focus`() = assertEveryStopShowsFocus(Tabs.MEDIA)
 
-    @Test fun `the RECORDING tab shows focus`() = assertEveryStopShowsFocus(Tabs.RECORDING)
-
     @Test fun `the LOWER_THIRD tab shows focus`() = assertEveryStopShowsFocus(Tabs.LOWER_THIRD)
 
     @Test fun `the ANNOUNCEMENTS tab shows focus`() = assertEveryStopShowsFocus(Tabs.ANNOUNCEMENTS)

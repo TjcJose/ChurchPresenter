@@ -14,7 +14,6 @@ import org.churchpresenter.strings.generated.resources.tab_canvas
 import org.churchpresenter.strings.generated.resources.tab_companion_surface
 import org.churchpresenter.strings.generated.resources.tab_dictionary
 import org.churchpresenter.strings.generated.resources.tab_qa
-import org.churchpresenter.strings.generated.resources.tab_recording
 import org.churchpresenter.strings.generated.resources.tab_stt
 import org.churchpresenter.strings.generated.resources.tab_web
 import org.jetbrains.compose.resources.StringResource
@@ -28,7 +27,6 @@ val Tabs.labelRes: StringResource
         Tabs.PICTURES -> Res.string.pictures
         Tabs.PRESENTATION -> Res.string.presentation
         Tabs.MEDIA -> Res.string.media
-        Tabs.RECORDING -> Res.string.tab_recording
         Tabs.LOWER_THIRD -> Res.string.display_lower_third
         Tabs.ANNOUNCEMENTS -> Res.string.announcements
         Tabs.WEB -> Res.string.tab_web

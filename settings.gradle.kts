@@ -148,10 +148,6 @@ include(":lower-third")
 // server use it.
 include(":lower-third-engine")
 
-// The Recording tab: pick the mixer's audio input, record it to an mp3, and save the take. Depended
-// on by :composeApp, which owns the RecordingManager for the whole run.
-include(":recording")
-
 // The helper lamp: tips, display setup, typed tasks and the spotlight that points at controls.
 // Depended on by :composeApp, which carries the actions out through HelperActionExecutor.
 include(":helper")

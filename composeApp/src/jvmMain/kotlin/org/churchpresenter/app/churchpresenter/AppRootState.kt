@@ -42,7 +42,6 @@ import org.churchpresenter.obs.OBSWebSocketManager
 import org.churchpresenter.companionsurface.CompanionSatelliteViewModel
 import org.churchpresenter.server.InstanceLinkViewModel
 import org.churchpresenter.stt.STTManager
-import org.churchpresenter.recording.RecordingManager
 import org.churchpresenter.settings.utils.AppDataDir
 import org.churchpresenter.telemetry.LiveMapReporter
 import org.churchpresenter.updater.UpdateCheckResult
@@ -115,7 +114,6 @@ internal class AppRootState(
     val companionServer = CompanionServer(appVersion = BuildConfig.APP_VERSION)
     val qaManager = QAManager().also { companionServer.qaManager = it }
     val sttManager = STTManager()
-    val recordingManager = RecordingManager()
     val obsManager = OBSWebSocketManager()
     val companionSatelliteViewModel = CompanionSatelliteViewModel()
 

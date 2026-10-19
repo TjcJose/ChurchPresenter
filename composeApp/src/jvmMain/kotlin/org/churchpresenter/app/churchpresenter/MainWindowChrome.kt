@@ -164,7 +164,6 @@ internal fun MainWindowScope.MainDesktopHost() {
                     }
                 },
                 sttManager = sttManager,
-                recordingManager = recordingManager,
                 dialogDismissSignal = dialogDismissSignal,
                 companionSatelliteViewModel = companionSatelliteViewModel,
                 onRequestDeveloperMenuUnlock = { developerMenuUnlocked = true },
