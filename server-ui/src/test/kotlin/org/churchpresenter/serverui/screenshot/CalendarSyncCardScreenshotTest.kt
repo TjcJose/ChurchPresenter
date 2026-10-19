@@ -28,6 +28,7 @@ import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.churchpresenter.sharedui.screenshot.captureComponent
+import org.churchpresenter.sharedui.screenshot.PinnedFonts
 
 /**
  * The "Calendar on phones" card of the Server tab, in each state it reports, and the QR the
@@ -129,6 +130,21 @@ class CalendarSyncCardScreenshotTest {
     fun `the relay could not be reached`() = card("failed", status = CalendarSyncStatus.Failed("connection refused"))
 
     @Test
+    fun `the relay's own words, opened under the failure`() = card(
+        "failed_details",
+        status = CalendarSyncStatus.Failed("relay rejected the request (500): {\"error\":\"internal\"}"),
+        drive = { onAllNodesWithText("Details")[0].performClick() },
+    )
+
+    @Test
+    fun `the connection details, unfolded`() = card(
+        "connection_details",
+        status = CalendarSyncStatus.Synced(AT, outcome()),
+        devices = devices,
+        drive = { onAllNodesWithText("Connection details")[0].performClick() },
+    )
+
+    @Test
     fun `the startup round timed out`() = card("timed_out", status = CalendarSyncStatus.TimedOut)
 
     @Test
@@ -147,23 +163,25 @@ class CalendarSyncCardScreenshotTest {
         val revoked = ArrayList<String>()
         runComposeUiTest {
             setContent {
-                ChurchPresenterTheme(themeMode = ThemeMode.LIGHT) {
-                    CalendarSyncCardContent(
-                        settings = paired,
-                        onSettingsChange = {},
-                        status = CalendarSyncStatus.Synced(AT, SyncOutcome(1, 0, 0, 0)),
-                        devices = devices,
-                        labelFor = { "" },
-                        onSyncNow = { syncNow++ },
-                        onUnpair = { unpair++ },
-                        onRevoke = { revoked += it },
-                        zone = ZONE,
-                        locale = LOCALE,
-                    )
+                PinnedFonts {
+                    ChurchPresenterTheme(themeMode = ThemeMode.LIGHT) {
+                        CalendarSyncCardContent(
+                            settings = paired,
+                            onSettingsChange = {},
+                            status = CalendarSyncStatus.Synced(AT, SyncOutcome(1, 0, 0, 0)),
+                            devices = devices,
+                            labelFor = { "" },
+                            onSyncNow = { syncNow++ },
+                            onUnpair = { unpair++ },
+                            onRevoke = { revoked += it },
+                            zone = ZONE,
+                            locale = LOCALE,
+                        )
+                    }
                 }
             }
             onAllNodesWithText("Sync now")[0].performClick()
-            onAllNodesWithText("Start over with a new key")[0].performClick()
+            onAllNodesWithText("Start over with a new key…")[0].performClick()
             onAllNodesWithText("Revoke")[1].performClick()
             waitForIdle()
         }
@@ -177,19 +195,21 @@ class CalendarSyncCardScreenshotTest {
         val seen = ArrayList<Boolean>()
         runComposeUiTest {
             setContent {
-                ChurchPresenterTheme(themeMode = ThemeMode.LIGHT) {
-                    CalendarSyncCardContent(
-                        settings = AppSettings(),
-                        onSettingsChange = { change -> seen += change(AppSettings()).calendarSync.enabled },
-                        status = CalendarSyncStatus.Off,
-                        devices = emptyList(),
-                        labelFor = { "" },
-                        onSyncNow = {},
-                        onUnpair = {},
-                        onRevoke = {},
-                        zone = ZONE,
-                        locale = LOCALE,
-                    )
+                PinnedFonts {
+                    ChurchPresenterTheme(themeMode = ThemeMode.LIGHT) {
+                        CalendarSyncCardContent(
+                            settings = AppSettings(),
+                            onSettingsChange = { change -> seen += change(AppSettings()).calendarSync.enabled },
+                            status = CalendarSyncStatus.Off,
+                            devices = emptyList(),
+                            labelFor = { "" },
+                            onSyncNow = {},
+                            onUnpair = {},
+                            onRevoke = {},
+                            zone = ZONE,
+                            locale = LOCALE,
+                        )
+                    }
                 }
             }
             onAllNodes(isToggleable())[0].performClick()

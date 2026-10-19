@@ -60,6 +60,7 @@ import org.churchpresenter.settings.removeBibleTranslation
 import org.churchpresenter.settings.utils.Constants
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import org.churchpresenter.sharedui.composables.ScanningRow
 
 /** [ActionIconButton]'s own default size, which the reorder buttons take and their gaps stand in for. */
 private val REORDER_BUTTON_SIZE = 34.dp
@@ -324,7 +325,6 @@ private fun TranslationIdentityRow(
     Row(
         horizontalArrangement = Arrangement.spacedBy(ROW_GAP),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(start = IDENTITY_ROW_INSET),
     ) {
         SettingsTextField(
             value = translation.customName,
@@ -346,9 +346,6 @@ private fun TranslationIdentityRow(
         )
     }
 }
-
-/** Indented under its own slot's picker, so the pair reads as belonging to the row above. */
-private val IDENTITY_ROW_INSET = 4.dp
 
 /** Wide enough for the longest abbreviation anyone writes; the name beside it takes the rest. */
 private val ABBREVIATION_FIELD_WIDTH = 96.dp

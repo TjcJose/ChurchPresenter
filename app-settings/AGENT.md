@@ -30,6 +30,9 @@ It sits above the feature modules it configures (`:live-output`, `:media`, `:son
   nothing and gets the real undecorated window; a test passes a plain box.
 - **`LocalDefaultCalendarFolder`**: pins the calendar folder's fallback path so a picture does not
   print this machine's app-data folder.
+- **`LocalAutoStart`**: the `AutoStartSwitch` the Launch at login row drives, `AutoStartManager`
+  unless a test provides a stand-in. It is how a test gets an answer only Windows can give: the
+  refused change (`AutoStartChange.REFUSED`), which the row explains and the crash report leaves out.
 
 ## Package
 
@@ -60,5 +63,5 @@ It sits above the feature modules it configures (`:live-output`, `:media`, `:son
 ## Gates
 
 - **detekt**: the app's `config/detekt/detekt.yml`, **no baseline**.
-- **Coverage**: the root build's default six counters at 85% — no `coverageFloors`, no
+- **Coverage**: `cp.test`'s default six counters at 85% — no `coverageFloors`, no
   `coverageExcludes`.

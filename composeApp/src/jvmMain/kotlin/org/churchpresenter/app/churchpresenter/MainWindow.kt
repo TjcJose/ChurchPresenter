@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import org.churchpresenter.helper.ui.GuideSpotlightHost
 import org.churchpresenter.sharedui.guide.LocalGuideSession
 import org.churchpresenter.sharedui.guide.LocalWickCorner
+import org.churchpresenter.sharedui.guide.LocalWickPlace
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.unit.DpSize
@@ -82,6 +83,8 @@ import org.churchpresenter.sharedui.utils.LocalMainWindowState
 import org.churchpresenter.schedule.LocalOpenCalendar
 import org.churchpresenter.diagnostics.StartupProbe
 import kotlin.system.exitProcess
+import org.churchpresenter.sharedui.guide.LocalSpotlightHost
+import androidx.compose.foundation.layout.BoxScope
 
 /** The work done once the window is up: the server's first start, the update check and the story prompt. */
 @Composable
@@ -243,6 +246,12 @@ private fun AppRootState.MainWindow(
             // The first frame the operator sees; the startup benchmark's end point (StartupProbe).
             withFrameNanos { }
             StartupProbe.firstFrame(exit = { exitProcess(0) })
+            // UI stalls count from shortly after this: a first launch stalls while it loads.
+            uiStallReporter.firstFrame()
+            // render.api is what was asked for; skiko falls back to drawing in software on a GPU
+            // it cannot use, which makes every frame slow, so a stall report says which it got.
+            CrashReporter.setTag("render.api.actual", window.renderApi.name)
+            uiStallReporter.softwareRendering(window.renderApi.name.startsWith("SOFTWARE"))
         }
         MacMenuBarActivationFix()
         LanguageProvider(language = currentLanguage) {
@@ -257,7 +266,16 @@ private fun AppRootState.MainWindow(
                     },
                     LocalGuideSession provides helperState.session,
                     // Settings and the other windows Wick's tours reach carry the lamp too.
-                    LocalWickCorner provides remember { { placed: Modifier -> WickLamp(placed) } },
+                    // Each window says where it is (LocalWickPlace), which picks what its lamp offers.
+                    LocalWickCorner provides remember {
+                        { placed: Modifier -> WickLamp(placed, LocalWickPlace.current) }
+                    },
+                    // A window in a module below the helper (the Bible catalogue) wraps itself in this.
+                    LocalSpotlightHost provides remember {
+                        { modifier: Modifier, content: @Composable BoxScope.() -> Unit ->
+                            GuideSpotlightHost(modifier) { content() }
+                        }
+                    },
                 ) {
                     GuideSpotlightHost(modifier = Modifier.fillMaxSize(), wick = false) {
                     MainWindowContent(

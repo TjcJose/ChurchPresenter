@@ -12,6 +12,10 @@ import androidx.compose.ui.platform.testTag
 import org.churchpresenter.strings.generated.resources.dev_mode_only_hint
 import org.churchpresenter.strings.generated.resources.dev_mode_only
 import org.churchpresenter.strings.generated.resources.preview_mode_hint
+import org.churchpresenter.strings.generated.resources.output_guard
+import org.churchpresenter.strings.generated.resources.output_guard_hint
+import org.churchpresenter.strings.generated.resources.output_guard_on_hang
+import org.churchpresenter.strings.generated.resources.output_guard_on_hang_hint
 import org.churchpresenter.strings.generated.resources.preview_mode
 import org.churchpresenter.liveoutput.withPreviewMode
 import androidx.compose.foundation.layout.FlowRowScope
@@ -55,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -69,6 +74,8 @@ import org.churchpresenter.strings.generated.resources.general
 import org.churchpresenter.strings.generated.resources.import_settings
 import org.churchpresenter.strings.generated.resources.import_settings_confirm
 import org.churchpresenter.strings.generated.resources.launch_on_login
+import org.churchpresenter.strings.generated.resources.launch_on_login_failed
+import org.churchpresenter.strings.generated.resources.launch_on_login_refused
 import org.churchpresenter.strings.generated.resources.remote_uploads_cleared
 import org.churchpresenter.strings.generated.resources.reset_settings
 import org.churchpresenter.strings.generated.resources.reset_settings_confirm
@@ -99,6 +106,7 @@ import org.churchpresenter.server.CompanionServer
 import org.churchpresenter.profiles.FileManager
 import org.churchpresenter.diagnostics.CrashReporter
 import org.churchpresenter.settings.AppSettings
+import org.churchpresenter.settings.ProjectionSettings
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.churchpresenter.sharedui.guide.GuideTargets
@@ -236,6 +244,8 @@ private val SIDE_COLUMN_WIDTH = 400.dp
 private fun GeneralToggleRow(
     label: StringResource,
     hint: String? = null,
+    /** Why the last change did not take, shown under the label in the error colour. */
+    problem: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -263,6 +273,14 @@ private fun GeneralToggleRow(
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
+            if (problem != null) {
+                Text(
+                    text = problem,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
         RaisedSwitch(
             checked = checked,
@@ -273,6 +291,9 @@ private fun GeneralToggleRow(
     }
 }
 
+/** The switch Launch at login drives: the app's [AutoStartManager], unless a test provides another. */
+internal val LocalAutoStart = staticCompositionLocalOf<AutoStartSwitch> { AutoStartManager }
+
 @Composable
 private fun GeneralCard(
     settings: AppSettings,
@@ -282,14 +303,24 @@ private fun GeneralCard(
     SettingsCard(title = stringResource(Res.string.general)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
             // Launch at login — the OS registration is the source of truth, not settings.json
-            var autoStartEnabled by remember { mutableStateOf(AutoStartManager.isEnabled()) }
+            val autoStart = LocalAutoStart.current
+            var autoStartEnabled by remember { mutableStateOf(autoStart.isEnabled()) }
+            // Says why a change did not take, until one does: a switch that only refuses to move
+            // gets pressed again and again.
+            var lastAutoStartChange by remember { mutableStateOf<AutoStartChange?>(null) }
             GeneralToggleRow(
                 label = Res.string.launch_on_login,
+                problem = when (lastAutoStartChange) {
+                    AutoStartChange.REFUSED -> stringResource(Res.string.launch_on_login_refused)
+                    AutoStartChange.FAILED -> stringResource(Res.string.launch_on_login_failed)
+                    AutoStartChange.DONE, AutoStartChange.UNSUPPORTED, null -> null
+                },
                 checked = autoStartEnabled,
                 onCheckedChange = { enabled ->
                     scope.launch {
-                        val ok = withContext(Dispatchers.IO) { AutoStartManager.setEnabled(enabled) }
-                        if (ok) autoStartEnabled = enabled
+                        val change = withContext(Dispatchers.IO) { autoStart.setEnabled(enabled) }
+                        if (change == AutoStartChange.DONE) autoStartEnabled = enabled
+                        lastAutoStartChange = change
                     }
                 }
             )
@@ -381,6 +412,8 @@ private fun DevModeCard(
                 onCheckedChange = { on -> onSettingsChange { s -> s.withPreviewMode(on) } }
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            OutputGuardRows(settings.projectionSettings, onSettingsChange)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             // Checks the crash-reporting pipeline end to end; there is nothing to send with reporting off.
             TestEventRow(scope, enabled = settings.analyticsReportingEnabled)
         }
@@ -388,6 +421,36 @@ private fun DevModeCard(
 }
 
 internal const val DEV_MODE_CARD_TAG = "system_dev_mode_card"
+
+/**
+ * The output guard's switches (docs/SHOW_CONTROL.md, Output isolation): whether a second process
+ * keeps each output's last picture under it for when the app dies, and, while it does, whether it
+ * also covers a frozen app.
+ */
+@Composable
+private fun OutputGuardRows(
+    projection: ProjectionSettings,
+    onSettingsChange: ((AppSettings) -> AppSettings) -> Unit,
+) {
+    GeneralToggleRow(
+        label = Res.string.output_guard,
+        hint = stringResource(Res.string.output_guard_hint),
+        checked = projection.outputGuardEnabled,
+        onCheckedChange = { on ->
+            onSettingsChange { s -> s.copy(projectionSettings = s.projectionSettings.copy(outputGuardEnabled = on)) }
+        },
+    )
+    if (projection.outputGuardEnabled) {
+        GeneralToggleRow(
+            label = Res.string.output_guard_on_hang,
+            hint = stringResource(Res.string.output_guard_on_hang_hint),
+            checked = projection.outputGuardOnHang,
+            onCheckedChange = { on ->
+                onSettingsChange { s -> s.copy(projectionSettings = s.projectionSettings.copy(outputGuardOnHang = on)) }
+            },
+        )
+    }
+}
 
 @Composable
 private fun TestEventRow(scope: CoroutineScope, enabled: Boolean) {

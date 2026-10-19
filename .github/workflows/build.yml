@@ -111,7 +111,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -230,7 +230,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -364,9 +364,22 @@ jobs:
             --key "$RUNNER_TEMP/private_keys/AuthKey.p8" \
             --key-id "$API_KEY_ID" \
             --issuer "$API_ISSUER_ID" \
-            --wait 2>&1 | tee /dev/stderr )
+            --wait 2>&1 | tee /dev/stderr ) || true
           SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep -m1 -E '^\s*id:' | awk '{print $2}')
           STATUS=$(echo "$SUBMIT_OUT" | grep -E '^\s*status:' | tail -1 | awk '{print $2}')
+          # A network error while waiting -- Apple's service timing out -- ends `--wait` with no
+          # verdict although the upload went through. Wait on the same submission again a few
+          # times before calling it failed; nothing is resubmitted.
+          for attempt in 1 2 3 4 5; do
+            if [ -n "$STATUS" ] || [ -z "$SUBMISSION_ID" ]; then break; fi
+            echo "No verdict yet for submission $SUBMISSION_ID (wait $attempt of 5) -- waiting on it again in 30s..."
+            sleep 30
+            WAIT_OUT=$( xcrun notarytool wait "$SUBMISSION_ID" \
+              --key "$RUNNER_TEMP/private_keys/AuthKey.p8" \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" 2>&1 | tee /dev/stderr ) || true
+            STATUS=$(echo "$WAIT_OUT" | grep -E '^\s*status:' | tail -1 | awk '{print $2}')
+          done
           if [ "$STATUS" != "Accepted" ]; then
             echo "❌ Notarization ${STATUS:-failed} (submission $SUBMISSION_ID) — Apple's log:"
             xcrun notarytool log "$SUBMISSION_ID" \
@@ -427,7 +440,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -562,9 +575,22 @@ jobs:
             --key "$RUNNER_TEMP/private_keys/AuthKey.p8" \
             --key-id "$API_KEY_ID" \
             --issuer "$API_ISSUER_ID" \
-            --wait 2>&1 | tee /dev/stderr )
+            --wait 2>&1 | tee /dev/stderr ) || true
           SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep -m1 -E '^\s*id:' | awk '{print $2}')
           STATUS=$(echo "$SUBMIT_OUT" | grep -E '^\s*status:' | tail -1 | awk '{print $2}')
+          # A network error while waiting -- Apple's service timing out -- ends `--wait` with no
+          # verdict although the upload went through. Wait on the same submission again a few
+          # times before calling it failed; nothing is resubmitted.
+          for attempt in 1 2 3 4 5; do
+            if [ -n "$STATUS" ] || [ -z "$SUBMISSION_ID" ]; then break; fi
+            echo "No verdict yet for submission $SUBMISSION_ID (wait $attempt of 5) -- waiting on it again in 30s..."
+            sleep 30
+            WAIT_OUT=$( xcrun notarytool wait "$SUBMISSION_ID" \
+              --key "$RUNNER_TEMP/private_keys/AuthKey.p8" \
+              --key-id "$API_KEY_ID" \
+              --issuer "$API_ISSUER_ID" 2>&1 | tee /dev/stderr ) || true
+            STATUS=$(echo "$WAIT_OUT" | grep -E '^\s*status:' | tail -1 | awk '{print $2}')
+          done
           if [ "$STATUS" != "Accepted" ]; then
             echo "❌ Notarization ${STATUS:-failed} (submission $SUBMISSION_ID) — Apple's log:"
             xcrun notarytool log "$SUBMISSION_ID" \
@@ -625,7 +651,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -675,6 +701,57 @@ jobs:
           CALENDAR_RELAY_URL: ${{ secrets.CALENDAR_RELAY_URL }}
           CALENDAR_RELAY_CONFIG_URL: ${{ secrets.CALENDAR_RELAY_CONFIG_URL }}
         run: ./gradlew :composeApp:signLinuxDeb
+
+      # The runner's Ubuntu names some libraries differently from 22.04 (libasound2t64, not
+      # libasound2), and jpackage writes the runner's names. Installing it on 22.04 here is what
+      # proves the .deb also accepts the old ones (issue #875). The step then checks that what was
+      # installed also loads there: ldd on every ELF file under /opt/churchpresenter fails on a
+      # "not found", a missing library or a GLIBC/GLIBCXX version 22.04 lacks. A library built on a
+      # newer Linux installs fine and then cannot load. libdecklink_jni.so opens Blackmagic's driver
+      # with dlopen, so ldd does not ask for it; that is expected, not a failure. The bundled JVM's
+      # directory is on LD_LIBRARY_PATH for the check, as the java launcher puts it for the app.
+      - name: Install the .deb on Ubuntu 22.04
+        run: |
+          docker run --rm -e DEBIAN_FRONTEND=noninteractive \
+            -v "$PWD/composeApp/build/compose/binaries/main/deb:/deb:ro" \
+            ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401 \
+            bash -c '
+              set -e
+              # The package post-install runs xdg-desktop-menu, which needs the menu directories
+              # every desktop has and a bare container lacks.
+              mkdir -p /etc/xdg/menus/applications-merged /usr/share/desktop-directories
+              apt-get update -qq && apt-get install -y -qq /deb/*.deb
+              dpkg -s "$(dpkg-deb -f /deb/*.deb Package)" | grep -E "^(Status|Depends|Recommends):"
+              # Each Recommends entry (with its alternatives) must have one package installed.
+              echo "Recommends:"
+              recommends_missing=0
+              while IFS= read -r entry; do
+                found=""
+                for alt in $(echo "$entry" | tr "|" " " | sed "s/([^)]*)//g"); do
+                  if dpkg -s "$alt" 2>/dev/null | grep -q "^Status: install ok installed"; then found=$alt; break; fi
+                done
+                if [ -n "$found" ]; then echo "  installed: $found"; else echo "::error::Recommends not installed: $entry"; recommends_missing=1; fi
+              done < <(dpkg-deb -f /deb/*.deb Recommends | tr "," "\n" | sed "s/^ *//; s/ *\$//" | grep .)
+              failed=$recommends_missing
+              # The JDK libraries find libjvm.so through the java launcher, which ldd does not run.
+              jvm=$(find /opt/churchpresenter -name libjvm.so | head -1)
+              [ -n "$jvm" ] || { echo "::error::no libjvm.so in the package"; exit 1; }
+              export LD_LIBRARY_PATH=$(dirname "$jvm")
+              count=0
+              while IFS= read -r -d "" f; do
+                [ "$(head -c 4 "$f" | od -An -c | tr -d " ")" = "177ELF" ] || continue
+                count=$((count + 1))
+                missing=$(ldd "$f" 2>&1 | grep "not found" || true)
+                if [ -n "$missing" ]; then
+                  failed=1
+                  echo "::error::$f cannot load on Ubuntu 22.04:"
+                  echo "$missing" | sed "s/^/    /"
+                fi
+              done < <(find /opt/churchpresenter -type f -print0)
+              echo "ldd checked $count ELF files under /opt/churchpresenter"
+              [ "$count" -gt 0 ] || { echo "::error::no ELF files found to check"; exit 1; }
+              exit $failed
+            '
 
       - name: Rename DEB (add DEBIAN-x64 label)
         run: |
