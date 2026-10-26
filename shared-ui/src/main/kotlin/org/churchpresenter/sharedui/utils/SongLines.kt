@@ -1,6 +1,7 @@
 package org.churchpresenter.sharedui.utils
 
 import org.churchpresenter.songchords.ChordTransposer
+import org.churchpresenter.songchords.SecondVoice
 import java.util.Locale
 
 /**
@@ -8,6 +9,9 @@ import java.util.Locale
  * an instrumental break writes as its own line. See [ChordTransposer.isSectionHeader].
  */
 fun isHeaderLine(line: String): Boolean = ChordTransposer.isSectionHeader(line)
+
+/** A header's name as written, without its brackets: `[Chorus 1]` → `Chorus 1`, `{Refrain}` → `Refrain`. */
+fun sectionLabelOf(header: String): String = header.trim().trim('[', ']', '{', '}').trim()
 
 /** {} = chorus, [] = verse/other */
 fun isChorusHeader(line: String): Boolean {
@@ -49,7 +53,7 @@ private val NON_VERSE_SECTION_NAMES = setOf(
  * this replaced and so never a regression.
  */
 fun isVerseHeader(header: String?): Boolean {
-    val label = header?.trim()?.trim('[', ']', '{', '}')?.trim().orEmpty()
+    val label = header?.let(::sectionLabelOf).orEmpty()
     if (label.isEmpty()) return true
     val name = label.trimEnd { it.isDigit() || it.isWhitespace() }
         .lowercase(Locale.US)
@@ -72,3 +76,34 @@ fun isSlideBreak(line: String): Boolean = ChordTransposer.isSlideBreak(line)
  */
 fun songBackgroundDirectiveOf(line: String): Pair<String, String>? =
     ChordTransposer.backgroundDirectiveOf(line)
+
+/**
+ * Whether [line] is a directive — `[background: …]` or `[voice: 2]` — rather than words: it
+ * configures the lines around it and is never put on screen.
+ */
+fun isLyricDirective(line: String): Boolean =
+    ChordTransposer.isBackgroundDirective(line) || SecondVoice.isVoiceDirective(line)
+
+/**
+ * [lines] as a slide built straight from a song shows them: directives gone, and the lines of a
+ * `[voice: 2]` block written as `2>` lines, a block ending at `[voice: 1]` or the next header.
+ */
+fun presentableSongLines(lines: List<String>): List<String> {
+    var voice = SecondVoice.MAIN
+    return lines.mapNotNull { line ->
+        val switched = SecondVoice.voiceDirectiveOf(line)
+        when {
+            switched != null -> { voice = switched; null }
+            ChordTransposer.isBackgroundDirective(line) -> null
+            isHeaderLine(line) -> { voice = SecondVoice.MAIN; line }
+            voice == SecondVoice.SECOND && line.isNotBlank() -> SecondVoice.asSecondVoiceLine(line)
+            else -> line
+        }
+    }
+}
+
+/**
+ * [line] as words alone, its second-voice markup (`2>`, `2>(…)`) taken out — for anywhere a lyric
+ * is shown or searched as plain text. See [SecondVoice], which owns the grammar.
+ */
+fun plainLyricLine(line: String): String = SecondVoice.plain(line)

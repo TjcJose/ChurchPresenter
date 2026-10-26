@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.PhoneIphone
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,12 +43,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.rememberDialogState
 import org.churchpresenter.server.CompanionServer
+import org.churchpresenter.server.DevicePermission
+import org.churchpresenter.server.DevicePermissions
 import org.churchpresenter.sharedui.composables.TooltipIconButton
 import org.churchpresenter.sharedui.utils.AppWindowRoot
 import org.churchpresenter.sharedui.utils.LocalMainWindowState
-import org.churchpresenter.sharedui.utils.centeredOnMainWindow
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.allowed_clients_description
 import org.churchpresenter.strings.generated.resources.blocked_clients_description
@@ -60,6 +61,7 @@ import org.churchpresenter.strings.generated.resources.instance_link_follower_ba
 import org.churchpresenter.strings.generated.resources.instance_link_followers_connected_count
 import org.churchpresenter.strings.generated.resources.no_allowed_clients
 import org.churchpresenter.strings.generated.resources.no_blocked_clients
+import org.churchpresenter.strings.generated.resources.remote_client_permissions
 import org.churchpresenter.strings.generated.resources.remote_clients_description
 import org.churchpresenter.strings.generated.resources.remote_clients_tab_allowed
 import org.churchpresenter.strings.generated.resources.remote_clients_tab_blocked
@@ -73,6 +75,7 @@ import org.churchpresenter.theme.components.RaisedButton
 import org.churchpresenter.theme.components.SettingsTextField
 import org.churchpresenter.theme.semantic
 import org.jetbrains.compose.resources.stringResource
+import org.churchpresenter.sharedui.utils.rememberCenteredDialogState
 
 @Composable
 internal fun RemoteClientsCard(companionServer: CompanionServer, remoteClientManager: RemoteClientManager) {
@@ -164,6 +167,11 @@ private fun ClientList(
                         blocked = blocked,
                         onRemove = { onRemove(clientId) },
                         isInstanceLinkFollower = clientId in followers,
+                        // A blocked device may do nothing, so only an allowed one has permissions.
+                        permissions = if (blocked) null else remoteClientManager.permissionsFor(clientId),
+                        onPermissionChange = { permission, allowed ->
+                            remoteClientManager.setPermission(clientId, permission, allowed)
+                        },
                     )
                 }
             }
@@ -179,16 +187,54 @@ private fun ClientRow(
     blocked: Boolean,
     onRemove: () -> Unit,
     isInstanceLinkFollower: Boolean = false,
+    permissions: DevicePermissions? = null,
+    onPermissionChange: (DevicePermission, Boolean) -> Unit = { _, _ -> },
+) {
+    var showPermissions by remember { mutableStateOf(false) }
+    val shape = AppShape(10.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape),
+    ) {
+        ClientRowLine(
+            clientId = clientId,
+            label = label,
+            onSetLabel = onSetLabel,
+            blocked = blocked,
+            onRemove = onRemove,
+            isInstanceLinkFollower = isInstanceLinkFollower,
+            permissions = permissions,
+            showPermissions = showPermissions,
+            onTogglePermissions = { showPermissions = !showPermissions },
+        )
+        if (permissions != null && showPermissions) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            ClientPermissionsPanel(permissions, onPermissionChange)
+        }
+    }
+}
+
+/** The device's own line: who it is, and its buttons -- or its name being edited. */
+@Composable
+private fun ClientRowLine(
+    clientId: String,
+    label: String,
+    onSetLabel: (String) -> Unit,
+    blocked: Boolean,
+    onRemove: () -> Unit,
+    isInstanceLinkFollower: Boolean,
+    permissions: DevicePermissions?,
+    showPermissions: Boolean,
+    onTogglePermissions: () -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
     var editText by remember(label) { mutableStateOf(label) }
-    val shape = AppShape(10.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(11.dp),
@@ -228,6 +274,17 @@ private fun ClientRow(
             }
         } else {
             ClientIdentity(clientId, label, isInstanceLinkFollower, modifier = Modifier.weight(1f))
+            if (permissions != null) {
+                PermissionsSummary(permissions)
+                val tint = if (showPermissions) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                RowIconButton(Icons.Outlined.Tune, stringResource(Res.string.remote_client_permissions), tint) {
+                    onTogglePermissions()
+                }
+            }
             RowIconButton(Icons.Outlined.Edit, stringResource(Res.string.client_label_edit_tooltip)) {
                 editing = true
                 editText = label
@@ -261,11 +318,7 @@ internal fun ConnectionQrDialog(serverUrl: String, apiKey: String?, onDismiss: (
     val mainWindowState = LocalMainWindowState.current
     DialogWindow(
         onCloseRequest = onDismiss,
-        state = rememberDialogState(
-            position = centeredOnMainWindow(mainWindowState, 400.dp, 500.dp),
-            width = 400.dp,
-            height = 500.dp
-        ),
+        state = rememberCenteredDialogState(mainWindowState, 400.dp, 500.dp),
         title = stringResource(Res.string.connection_qr_title),
         resizable = false
     ) {

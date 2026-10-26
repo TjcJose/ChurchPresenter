@@ -43,7 +43,6 @@ import org.churchpresenter.settings.OutputProfile
 import org.churchpresenter.settings.defaultBaseline
 import org.churchpresenter.settings.defaultChanges
 import org.churchpresenter.settings.changesFrom
-import org.churchpresenter.settings.pathWithin
 import org.churchpresenter.settings.plainText
 import org.churchpresenter.settings.valueAt
 import org.churchpresenter.settings.withDefaultAt
@@ -149,7 +148,7 @@ private fun DefaultsCard(
                     onValueChange = { _, value ->
                         onProfileChange(paths.fold(profile) { p, at -> p.withValueAt(at, value) })
                     },
-                    label = "${settingPathLabel(path.replace(ENTRY, ""))} · $all",
+                    label = "${settingPathLabel(path.replace(TRANSLATION_ENTRY, "translations"))} · $all",
                     onRevert = { onProfileChange(paths.fold(profile) { p, at -> p.withDefaultAt(at) }) },
                 )
             }
@@ -166,10 +165,10 @@ private fun DefaultsCard(
  */
 internal fun groupedAcrossTranslations(changes: List<String>, profile: OutputProfile): List<List<String>> {
     val translations = profile.bibleSettings.translations.size
-    val byShape = changes.groupBy { it.replace(ENTRY, "[*]") }
+    val byShape = changes.groupBy { it.replace(TRANSLATION_ENTRY, ANY_TRANSLATION) }
     val emitted = mutableSetOf<String>()
     return changes.mapNotNull { path ->
-        val shape = path.replace(ENTRY, "[*]")
+        val shape = path.replace(TRANSLATION_ENTRY, ANY_TRANSLATION)
         val group = byShape.getValue(shape)
         val alike = shape != path && translations > 1 && group.size == translations &&
             group.map { profile.valueAt(it) }.distinct().size == 1
@@ -180,6 +179,10 @@ internal fun groupedAcrossTranslations(changes: List<String>, profile: OutputPro
         }
     }
 }
+
+/** One translation's entry in a path -- not a Bible box, which names its translation in its key. */
+private val TRANSLATION_ENTRY = Regex("""translations\[(?:\\.|[^]\\])*]""")
+private const val ANY_TRANSLATION = "translations[*]"
 
 /** Test handle for the card listing what a profile changes from the defaults. */
 internal const val DEFAULTS_CARD_TAG = "profile_defaults_card"
@@ -193,7 +196,9 @@ private fun DifferencesCard(
     onValueChange: (String, JsonElement) -> Unit,
 ) {
     var expanded by remember(link.profile.id) { mutableStateOf(false) }
-    val changes = link.profile.overrides.sorted()
+    // Worked out once per profile and masters, not on every frame: each line reads its master's
+    // value by path, and the card recomposes with every edit made on the page beside it.
+    val changes = remember(link.profile, link.sectionMasters, master) { link.changeLines(master) }
     // Named for the master while there is one; a profile following several says so rather than
     // naming one of them for changes made against another.
     val title = if (link.sectionMasters.values.all { it.id == master.id }) {
@@ -211,11 +216,17 @@ private fun DifferencesCard(
             )
         }
         val shown = if (expanded) changes else changes.take(SHOWN_CHANGES)
-        shown.forEach { path ->
-            val from = link.masterFor(listOf(path)) ?: master
-            ChangeRow(path, link.profile, from.displayName(), from.valueAt(path), onOpenPage, onValueChange) {
-                link.onRevert(listOf(path))
-            }
+        shown.forEach { line ->
+            ChangeRow(
+                path = line.path,
+                profile = link.profile,
+                sourceName = line.sourceName,
+                sourceValue = line.sourceValue,
+                onOpenPage = onOpenPage,
+                onValueChange = onValueChange,
+                page = line.page,
+                onRevert = { link.onRevert(listOf(line.path)) },
+            )
         }
         if (!expanded && changes.size > SHOWN_CHANGES) {
             LinkText(stringResource(Res.string.profile_show_more, changes.size - SHOWN_CHANGES), { expanded = true })
@@ -246,13 +257,14 @@ private fun ChangeRow(
     onValueChange: (String, JsonElement) -> Unit,
     /** What the row is called -- the setting's own name, unless it stands for several. */
     label: String = settingPathLabel(path),
+    /** The page [path] is edited on, which its name opens; null for one no page shows. */
+    page: ProfilePage? = pageForPath(path),
     onRevert: () -> Unit,
 ) {
     val on = stringResource(Res.string.profile_value_on)
     val off = stringResource(Res.string.profile_value_off)
     Column(Modifier.fillMaxWidth().testTag(changeRowTag(path)), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val page = pageForPath(path)
             Text(
                 text = label,
                 fontSize = 12.sp,
@@ -305,26 +317,6 @@ private fun InlineValue(
         }
     }
 }
-
-/** The page a setting is edited on, or null for one no page shows. */
-internal fun pageForPath(path: String): ProfilePage? =
-    (listOf(ProfilePage.Content) + CustomizePane.entries.map { ProfilePage.Appearance(it) })
-        .firstOrNull { page -> page.pathPrefixes().any { pathWithin(path, it) } }
-
-/**
- * A setting's name read off its path: `bibleSettings.translations[kjv.spb].textFontSize` is
- * "Text font size · KJV". Named after the stored field, so it reads the way the settings file does
- * rather than the way a row labels it -- the card lists changes on every page, not only this one's.
- */
-internal fun settingPathLabel(path: String): String {
-    val entry = ENTRY.find(path)?.groupValues?.get(1)?.substringBeforeLast('.')?.uppercase()
-    val leaf = path.replace(ENTRY, "").substringAfterLast('.')
-    val words = leaf.replace(CAMEL_HUMP, " $1").lowercase().replaceFirstChar { it.uppercase() }
-    return if (entry != null) "$words · $entry" else words
-}
-
-private val ENTRY = Regex("\\[([^]]*)]")
-private val CAMEL_HUMP = Regex("(?<=[a-z0-9])([A-Z])")
 
 /** Test handle for one change in the card. */
 internal fun changeRowTag(path: String): String = "profile_change_$path"

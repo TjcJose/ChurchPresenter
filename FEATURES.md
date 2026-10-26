@@ -271,6 +271,7 @@
 - **Typography that fits** — auto-fit text to the screen, with control over fonts, size, alignment, shadows and margins.
 - **Live preview** — always see exactly what's on screen, and lock any output to a chosen tab.
 - **Design the preview panel** — arrange the live previews the way the booth wants them: start a layout from a template, split areas across or down, drag the dividers, choose what each area shows and where it sits, keep several named layouts and switch between them, and let a layout fill the panel.
+- **Profile sets** — save which profile every output uses (screens, Browser Source, NDI, OMT) under a name, and put them all back with one click from a button in the preview header; the layout menu's "Show profile sets button" switch turns the button on, offered with two outputs and two profiles or more.
 
 **Source locations:**
 - `live-output/…/PresenterScreen.kt` — output window
@@ -308,6 +309,7 @@
 - `profiles/…/MarginRoom.kt`, `presenter/…/ContentRegionModifier.kt`, `profiles/…/ContentBackgroundOwn.kt` — how far margins go, a region that moves only the text, and a content background that remembers its own
 - `data/settings/PreviewLayouts.kt`, `data/settings/PreviewLayoutSettings.kt` — preview layouts: the area tree and the layouts kept on the projection settings
 - `live-output/…/preview/PreviewLayoutView.kt`, `live-output/…/preview/PreviewLayoutTemplate.kt`, `live-output/…/preview/PreviewGroupsPopover.kt` — the panel drawn and edited as its layout says, the templates, and the gear's layout list
+- `settings/…/ProfileSet.kt`, `live-output/…/preview/ProfileSetsPopover.kt` — profile sets: saving, applying and the switch's rule, and the header button's menu
 
 ## Stage Monitor
 - **Confidence display for the platform** — give worship leaders and speakers their own screen showing the current slide, next slide, a clock, the countdown timer, section labels and presenter notes — in vertical, horizontal or four-quadrant layouts.
@@ -321,13 +323,13 @@
 
 ## Mobile & Remote Control
 - **Control from your phone** — a built-in server lets phones and tablets browse songs and scripture, build the schedule and go live — all over your local network.
-- **You stay in charge** — remote actions ask for approval on the desktop, with per-device allow/block lists and optional API-key protection.
+- **You stay in charge** — remote actions ask for approval on the desktop, with per-device allow/block lists, per-device permissions (control the screen, add to or remove from the schedule, go live, upload files, show notifications) and optional API-key protection.
 - **Real-time sync** — connected devices update instantly as the schedule and content change.
 
 **Source locations:**
 - `:server`'s `CompanionServer.kt` — Ktor REST + WebSocket server
 - `:server`'s `SslCertificateManager.kt`, `:server`'s `TunnelManager.kt`
-- `server-ui/…/RemoteClientManager.kt`
+- `server-ui/…/RemoteClientManager.kt`, `server-ui/…/ClientPermissions.kt`; `:server`'s `DevicePermissions.kt` — what each trusted device may do, enforced on every REST route and WebSocket command it gates
 - `data/settings/ServerSettings.kt`
 - `server-ui/…/ServerSettingsTab.kt`
 - `dialogs/RemoteActivityToast.kt`, `dialogs/RemoteEventDialog.kt`
@@ -373,6 +375,7 @@
 - **34 languages** — full interface translation: English, Spanish, French, German, Portuguese, Dutch, Swedish, Norwegian, Finnish, Estonian, Latvian, Polish, Czech, Slovak, Croatian, Romanian, Ukrainian, Russian, Belarusian, Kazakh, Uzbek, Turkish, Arabic, Persian, Hindi, Nepali, Thai, Lao, Japanese, Chinese, Indonesian, Malay, Tagalog and Swahili — with the interface laid out right-to-left for Arabic and Persian.
 - **9 themes** — light, dark, system and six accent themes to match your booth.
 - **Make it yours** — View → Customize Theme… builds a whole palette from one accent color on a light or dark base, lets you set the background, text, secondary, selection, success, warning and error colors too — or leave any on Auto — and sets the font, text size and list Margin — Normal, Thin or Thinner, for more rows on screen — the app's own windows use. Text is kept readable whatever you pick, and output screens are never affected.
+- **Interface size** — View → Zoom In (Ctrl =), Zoom Out (Ctrl −) and Actual Size, or Interface size in Customize Theme, grow or shrink everything in the app's own windows from 80% to 200% — for a high-resolution screen where the app is too small to read. Dialogs open larger to match, the largest size is what the screen leaves room for, and output screens are never affected.
 - **Guided setup** — a friendly first-run wizard gets your Bibles, songs and media ready in minutes.
 - **Wick, the helper** — a little lamp in the corner that offers a tip of the day, walks you through choosing the audience screen, points at the button you are looking for, and does simple jobs you type ("make the song background blue", "show John 3:16") once you say yes. What its rules don't catch, a small sentence model running on your own computer reads by meaning ("nothing shows on the second monitor"), offering the nearest requests rather than guessing. It stays quiet while anything is on screen. It is off until started from Help → Show Helper. It learns new phrasings, tours and tips from a small pack downloaded once a day, and a chat that went wrong can be sent to the team, masked and only when the user presses Send.
 - **Keyboard-driven** — comprehensive shortcuts for fast, mouse-free operation during a live service, every one of them rebindable from Help → Keyboard Shortcuts.

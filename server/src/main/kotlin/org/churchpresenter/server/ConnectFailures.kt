@@ -1,10 +1,12 @@
 package org.churchpresenter.server
 
 import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.websocket.WebSocketException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.io.IOException
+import java.nio.channels.UnresolvedAddressException
 import javax.net.ssl.SSLException
 
 private const val FAILURE_LOG_INTERVAL = 10
@@ -24,9 +26,16 @@ private const val REPORT_INTERVAL_WIDEN_AT_1000 = 1000
  *
  * It is also why the first-failure report was worth so little here: `consecutiveFailures` lives in
  * `connectLoop`, so every restart of the link begins a fresh count, and a follower pointed at an
- * address that never answers reports its "first" failure again on each one.
+ * address that never answers reports its "first" failure again on each one. The same reset is why
+ * these kinds are now never reported at all (see [ConnectFailures.shouldReportConnectFailure]).
+ *
+ * `bad_address` and `not_primary` are setup mistakes rather than defects: an address that does not
+ * resolve (most often a Host field holding `host:port` or a whole URL), and a port where something
+ * other than a ChurchPresenter primary answers. Either is fixed in the Instance Link dialog, and a
+ * report of it says nothing about the app.
  */
-private val BENIGN_CONNECT_FAILURES = setOf("refused", "dns", "ping_timeout", "timeout")
+private val BENIGN_CONNECT_FAILURES =
+    setOf("refused", "dns", "ping_timeout", "timeout", "bad_address", "not_primary")
 
 /**
  * How a failed connect to the primary is classified, redacted and rate-limited before it is
@@ -46,26 +55,22 @@ internal object ConnectFailures {
     /**
      * Whether a connect failure this far into a run of them is worth a warning.
      *
-     * A follower is configured once and then starts with the room, routinely before the primary
-     * does, so "refused" and "dns" on the first attempt are the ordinary startup order rather than
-     * a fault — and reporting them there made the follower's own boot sequence the single noisiest
-     * signal in the project. Those two therefore wait for the run to persist through
-     * [FAILURE_LOG_INTERVAL] attempts, by which point the backoff has carried it well past any
-     * plausible "primary is still coming up" window and the link genuinely is not working.
+     * The [BENIGN_CONNECT_FAILURES] kinds — refused, dns, timeout, ping_timeout — are **never**
+     * reported. Each says only that the primary is not there: not started yet, switched off, or
+     * gone from the network. They used to wait for a run of [FAILURE_LOG_INTERVAL] and then report
+     * once, but the count lives in `connectLoop` and starts again with every launch and every
+     * restart of the link, so a follower whose primary simply was not running filed the same
+     * warning on every launch (CHURCH-PRESENTER-DESKTOP-DM). The caller's `Log.warn` still leaves
+     * each failure as a breadcrumb, so a session that reports something else carries the history,
+     * and `InstanceLinkLogger` still records every attempt.
      *
-     * Once it has persisted, a benign run is reported **once**: the first warning says the link is
-     * not coming up, and every later one from the same run says only that it still is not —
-     * CHURCH-PRESENTER-DESKTOP-68 kept one follower pointed at an address that never answered
-     * filing a warning at 10, 20 … 100, 200 … 1000 consecutive timeouts, about nineteen per
-     * thousand, each telling Sentry nothing the first had not.
-     *
-     * The kinds that suggest a regression rather than an ordering — a certificate, or something
+     * The kinds that suggest a regression rather than an absent peer — a certificate, or something
      * unrecognised — report on the first failure and then on the widening cadence of
      * [reportIntervalFor], because those are worth seeing even if they never recur and worth
      * seeing again while they do.
      */
     internal fun shouldReportConnectFailure(kind: String, consecutiveFailures: Int): Boolean {
-        if (kind in BENIGN_CONNECT_FAILURES) return consecutiveFailures == FAILURE_LOG_INTERVAL
+        if (kind in BENIGN_CONNECT_FAILURES) return false
         return consecutiveFailures == 1 || consecutiveFailures % reportIntervalFor(consecutiveFailures) == 0
     }
 
@@ -97,14 +102,25 @@ internal object ConnectFailures {
      * The port is kept. It is not anyone's address, and a follower pointed at the wrong port is a
      * real misconfiguration worth being able to see.
      */
-    internal fun redactedConnectFailure(message: String?): String =
-        message?.replace(PEER_URL, "$1<peer>$2") ?: "none"
+    internal fun redactedConnectFailure(message: String): String =
+        message.replace(PEER_URL, "$1<peer>$2")
+
+    /**
+     * What a log line says about [e]: its message, or its class's simple name when it carries none —
+     * ktor's `UnresolvedAddressException` has no message, and "none" (or "null") said nothing about
+     * which failure it was.
+     */
+    internal fun connectFailureReason(e: Exception): String = e.message ?: e.javaClass.simpleName
+
+    /** What a report says about [e]: [connectFailureReason] with the peer's address taken out. */
+    internal fun describeConnectFailure(e: Exception): String = redactedConnectFailure(connectFailureReason(e))
 
     /**
      * Buckets a connect failure so Sentry can be filtered/grouped by cause. "refused", "dns",
      * "timeout" and "ping_timeout" are the primary not being there — not started, switched off, or
-     * gone from the network — and are [BENIGN_CONNECT_FAILURES]; "tls" and "other" are more likely
-     * a real regression (a protocol or certificate bug) and stay on the reporting cadence.
+     * gone from the network — and "bad_address" and "not_primary" are a link set up wrong; all six
+     * are [BENIGN_CONNECT_FAILURES]. "tls" and "other" are more likely a real regression (a
+     * protocol or certificate bug) and stay on the reporting cadence.
      */
     internal fun classifyConnectFailure(e: Exception): String = when {
         // ktor's own pinger raises this when the primary misses the keepalive window, which is what
@@ -124,6 +140,18 @@ internal object ConnectFailures {
         is UnknownHostException -> "dns"
         is SocketTimeoutException -> "timeout"
         is SSLException -> "tls"
+        // ktor CIO's answer to an address it cannot resolve — a misspelt name, or a Host field
+        // holding "host:port" or a whole URL. It extends IllegalArgumentException and carries no
+        // message, so it used to arrive as "other" with the reason "none".
+        is UnresolvedAddressException -> "bad_address"
+        // The port answered HTTP but would not upgrade to a WebSocket: something else listens there.
+        is WebSocketException -> if (isNon101Handshake(e)) "not_primary" else "other"
         else -> "other"
     }
+
+    private fun isNon101Handshake(e: WebSocketException): Boolean =
+        e.message?.let(NON_101_HANDSHAKE::containsMatchIn) == true
+
+    /** ktor's message for an upgrade answered with anything but 101 Switching Protocols. */
+    private val NON_101_HANDSHAKE = Regex("""expected status code 101 but was \d+""")
 }

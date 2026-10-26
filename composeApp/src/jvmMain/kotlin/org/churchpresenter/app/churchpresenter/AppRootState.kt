@@ -1,5 +1,6 @@
 package org.churchpresenter.app.churchpresenter
 
+import org.churchpresenter.signage.tab.SignageController
 import org.churchpresenter.core.models.songs.SongItem
 import org.churchpresenter.sharedui.utils.DevFlags
 import org.churchpresenter.sharedui.utils.UsageEvent
@@ -51,6 +52,7 @@ import java.util.Locale
 import androidx.compose.runtime.Stable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.churchpresenter.helper.HelperState
@@ -204,6 +206,9 @@ internal class AppRootState(
 
     // Set once the startup update check has run, so nothing waiting on it opens before its result.
     var startupChecksDone by mutableStateOf(false)
+
+    // Set when this start already showed a dialog, or the one before did, so Wick's intro waits for a quiet one.
+    var wickIntroDeferred by mutableStateOf(false)
     var showConverterWindow by mutableStateOf(false)
 
     // Which tab it opens on. The Help menu wants the converter as a whole; the setup wizard's
@@ -231,6 +236,12 @@ internal class AppRootState(
     var showStyleEditorWindow by mutableStateOf(false)
     var showMemoryMonitorWindow by mutableStateOf(false)
     var developerMenuUnlocked by mutableStateOf(false)
+
+    /** Signage's controller, made the first time the Signage tab is shown -- see `SignageEffect`. */
+    var signageController by mutableStateOf<SignageController?>(null)
+
+    /** The analytics setting as the signage screens are sent it: whether they may report crashes. */
+    val signageDiagnostics = MutableStateFlow(appSettings.analyticsReportingEnabled)
 
     /**
      * Dev mode: a dev build, the developer menu unlocked, or the forced dev window. The features not

@@ -77,6 +77,10 @@ data class ProjectionSettings(
     val previewLayoutFillsPanel: Boolean = false,
     /** Whether outputs no area of the layout shows are listed under it, one per row, or left out. */
     val listUnplacedOutputs: Boolean = true,
+    /** Named records of which profile each output uses, each put back in one click -- see [ProfileSet]. */
+    val profileSets: List<ProfileSet> = emptyList(),
+    /** Whether the preview header has the profile sets button -- see [showsProfileSetsButton]. */
+    val showProfileSetsButton: Boolean = false,
     /** Whether each preview in the panel carries its output's name. */
     val showOutputLabels: Boolean = true,
     /** Whether each preview names its display type -- Full Screen, Lower Third or Stage Monitor. */
@@ -123,6 +127,13 @@ data class ProjectionSettings(
     val outputGuardEnabled: Boolean = false,
     /** Whether the guard also covers the outputs with their stills while the app's UI is hung. Off. */
     val outputGuardOnHang: Boolean = false,
+    /**
+     * Render the live website once, off screen, and draw that one page on every output, the
+     * previews and the Web tab, at the page's own frame rate. Off, each output window has a browser
+     * of its own and everything else mirrors a screenshot of it. Read when the web engine starts, so
+     * a change takes effect after a restart. On unless turned off.
+     */
+    val offscreenWebEnabled: Boolean = true,
     /**
      * Named, reusable [OutputProfile]s, any of which an output can follow via
      * [ScreenAssignment.activeProfileId] -- see `AppSettings.resolvedFor(profile)`

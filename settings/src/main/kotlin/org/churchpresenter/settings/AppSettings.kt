@@ -50,6 +50,13 @@ data class AppSettings(
      * both at the same synced folder. Resolved by [calendarFolder].
      */
     val calendarStorageDirectory: String = "",
+    /** Where the schedule's Open and Save As dialogs start. Blank means the home folder. */
+    val scheduleStorageDirectory: String = "",
+    /**
+     * The song book the last new song was saved into, which the next new song starts in. Blank is
+     * the top of the songs folder -- no song book.
+     */
+    val newSongSongbook: String = "",
     val schedulePanelWidthDp: Int = 280,
     val schedulePanelCollapsed: Boolean = false,
     val scheduleItemZoomPercent: Int = 100,
@@ -102,6 +109,8 @@ data class AppSettings(
     val uiFontFamily: String = "",
     /** The UI text size, as a multiplier of the platform's font scale. Output windows ignore it. */
     val uiFontScale: Float = 1f,
+    /** The interface size: everything in the app's own windows, not only text. Output windows ignore it. */
+    val uiScale: Float = 1f,
     /** How much room list rows leave around their text. Output windows ignore it. */
     val uiRowSpacing: ListRowSpacing = ListRowSpacing.NORMAL,
     val language: String = "en",
@@ -112,7 +121,7 @@ data class AppSettings(
     val windowHeight: Int = 800,
     val windowX: Int = -1,
     val windowY: Int = -1,
-    val hiddenTabs: Set<String> = setOf("QA", "STT"),
+    val hiddenTabs: Set<String> = setOf("QA", "STT", "SIGNAGE"),
     val tabLabelStyle: TabLabelStyle = TabLabelStyle.TEXT,
     val tabLabelMargin: TabLabelMargin = TabLabelMargin.NORMAL,
     val crosswordUnlockedLevel: Int = 0,
@@ -141,6 +150,8 @@ data class AppSettings(
     /** The version the operator chose to skip; the launch check stops offering it, a manual check does not. */
     val skippedUpdateVersion: String = "",
     val storyPrompt: StoryPromptState = StoryPromptState(),
+    /** Spreads the dialogs that open unasked at startup across launches — see [StartupPromptPacing]. */
+    val startupPrompts: StartupPromptPacing = StartupPromptPacing(),
     /** The helper lamp in the main window's corner — shown or not, and what it was told to keep quiet. */
     val helper: HelperSettings = HelperSettings(),
     /** The backgrounds the preview panel's quick tray offers, in the order it shows them. */
@@ -177,6 +188,6 @@ data class AppSettings(
          * Purely *additive* fields need no bump: `ignoreUnknownKeys` plus a default already handles
          * those in both directions.
          */
-        const val CURRENT_SETTINGS_VERSION = 23
+        const val CURRENT_SETTINGS_VERSION = 25
     }
 }

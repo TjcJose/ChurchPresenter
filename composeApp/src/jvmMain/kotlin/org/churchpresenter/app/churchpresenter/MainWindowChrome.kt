@@ -42,6 +42,9 @@ internal fun MainWindowScope.AppMenuBar() {
             currentTheme = theme,
             hasCustomTheme = appSettings.customThemeAccent.isNotBlank(),
             onCustomizeTheme = { showCustomizeThemeDialog = true },
+            onZoomIn = { stepUiScale(zoomIn = true) },
+            onZoomOut = { stepUiScale(zoomIn = false) },
+            onActualSize = { applyUiScale(1f) },
             onAbout = { showAboutDialog = true },
             onContactUs = { showContactDialog = true },
             onGettingStarted = { showSetupWizard = true },
@@ -173,6 +176,7 @@ internal fun MainWindowScope.MainDesktopHost() {
                 flows = remoteControlFlows(),
                 link = instanceLinkBridge(instanceLinkIsControllerConnected, instanceLinkUsesRemoteContent),
                 web = webAccessState(),
+                signage = root.signageTabInput(),
             )
         }
     }

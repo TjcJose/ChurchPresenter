@@ -28,13 +28,14 @@ import org.churchpresenter.settings.AppSettings
  * holder goes only to MainDesktop's own wiring and layout files — the standing exception AGENT.md
  * records for the root screen — and never leaves them.
  *
- * [publish] and [link] are read through [State] so a callback handed to a ViewModel once always
+ * [publish], [link] and [settings] are read through [State] so a callback handed to a ViewModel once always
  * reaches the latest one MainDesktop was given.
  */
 internal class MainDesktopViewModels(
     appSettings: AppSettings,
     publish: State<MainDesktopPublishers>,
     link: State<InstanceLinkBridge>,
+    settings: State<AppSettings>,
 ) {
     val picturesViewModel = PicturesViewModel(appSettings)
     val presentationViewModel = PresentationViewModel(appSettings)
@@ -72,6 +73,7 @@ internal class MainDesktopViewModels(
     val dictionaryViewModel = DictionaryViewModel()
     val scheduleViewModel = ScheduleViewModel(
         onScheduleChanged = { items -> publish.value.onScheduleChanged?.invoke(items) },
+        scheduleFolder = { settings.value.scheduleStorageDirectory },
     )
 
     /** Disposes them newest first, the order their separate disposal effects used to run in. */
@@ -96,7 +98,8 @@ internal fun rememberMainDesktopViewModels(
 ): MainDesktopViewModels {
     val currentPublish = rememberUpdatedState(publish)
     val currentLink = rememberUpdatedState(link)
-    val vms = remember { MainDesktopViewModels(appSettings, currentPublish, currentLink) }
+    val currentSettings = rememberUpdatedState(appSettings)
+    val vms = remember { MainDesktopViewModels(appSettings, currentPublish, currentLink, currentSettings) }
     DisposableEffect(Unit) { onDispose { vms.dispose() } }
     return vms
 }

@@ -1,11 +1,13 @@
 package org.churchpresenter.server
 
 import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.plugins.websocket.WebSocketException
 import org.churchpresenter.settings.utils.Constants
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.nio.channels.UnresolvedAddressException
 import javax.net.ssl.SSLException
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -296,10 +298,57 @@ class InstanceLinkMessageTest {
         val c = clientWith(Recorder())
 
         assertEquals("No route to host", ConnectFailures.redactedConnectFailure("No route to host"))
+    }
+
+    @Test
+    fun `a failure with no message is described by its class`() {
+        // ktor CIO's UnresolvedAddressException carries no message. It used to arrive as "none",
+        // which said nothing about which failure it was (CHURCH-PRESENTER-DESKTOP-DM).
         assertEquals(
-            "none", ConnectFailures.redactedConnectFailure(null),
-            "a null message used to arrive as the literal title \"connection failed — null\"",
+            "UnresolvedAddressException",
+            ConnectFailures.describeConnectFailure(UnresolvedAddressException()),
         )
+        assertEquals(
+            "failed [url=ws://<peer>:8765/ws]",
+            ConnectFailures.describeConnectFailure(IOException("failed [url=ws://10.0.0.5:8765/ws]")),
+            "a message, when there is one, is still redacted",
+        )
+    }
+
+    @Test
+    fun `an address that does not resolve is a setup mistake and is not reported`() {
+        // CHURCH-PRESENTER-DESKTOP-DM: a Host field holding "host:port" or a whole URL made the
+        // client ask for ws://192.168.0.112:8765:8765/ws, which ktor cannot resolve.
+        val kind = ConnectFailures.classifyConnectFailure(UnresolvedAddressException())
+
+        assertEquals("bad_address", kind)
+        assertFalse(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1))
+        assertFalse(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 10))
+    }
+
+    @Test
+    fun `a port where something else answers is not a primary and is not reported`() {
+        val kind = ConnectFailures.classifyConnectFailure(
+            WebSocketException("Handshake exception, expected status code 101 but was 404"),
+        )
+
+        assertEquals("not_primary", kind)
+        assertEquals(
+            "not_primary",
+            ConnectFailures.classifyConnectFailure(
+                WebSocketException("Handshake exception, expected status code 101 but was 200"),
+            ),
+            "any status but 101 means the upgrade was refused",
+        )
+        assertFalse(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1))
+    }
+
+    @Test
+    fun `a websocket failure that is not a refused upgrade is still reported`() {
+        val kind = ConnectFailures.classifyConnectFailure(WebSocketException("something else"))
+
+        assertEquals("other", kind)
+        assertTrue(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1))
     }
 
     @Test
@@ -314,7 +363,7 @@ class InstanceLinkMessageTest {
     }
 
     @Test
-    fun `a ping timeout is classified and rate-limited like a refused connection`() {
+    fun `a ping timeout is classified and kept quiet like a refused connection`() {
         val c = clientWith(Recorder())
 
         // ktor's own pinger raises this when the primary misses the keepalive window. That is what
@@ -328,14 +377,14 @@ class InstanceLinkMessageTest {
             ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1),
             "one dropped keepalive on a hall's wifi is not worth an issue",
         )
-        assertTrue(
+        assertFalse(
             ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 10),
-            "a link that keeps dropping still has to surface",
+            "a primary that has gone away is not a defect however long it stays gone",
         )
     }
 
     @Test
-    fun `a connect timeout is rate-limited like a refused connection`() {
+    fun `a connect timeout is kept quiet like a refused connection`() {
         val c = clientWith(Recorder())
 
         // One stored address produced 767 reports from three churches in seventeen days, every one
@@ -352,9 +401,9 @@ class InstanceLinkMessageTest {
             ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1),
             "a primary that is simply switched off is not a defect to file",
         )
-        assertTrue(
+        assertFalse(
             ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 10),
-            "a link that never comes up still has to surface",
+            "a primary that is switched off is not a defect however long it stays off",
         )
     }
 
@@ -391,27 +440,16 @@ class InstanceLinkMessageTest {
     }
 
     @Test
-    fun `the benign kinds stay quiet until a run of failures persists`() {
+    fun `a benign run is never reported, however long it lasts`() {
         val c = clientWith(Recorder())
 
-        // A follower routinely starts before its primary; the first refusals are that ordering.
-        for (kind in listOf("refused", "dns")) {
-            assertFalse(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 1), kind)
-            assertFalse(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 9), kind)
-            assertTrue(ConnectFailures.shouldReportConnectFailure(kind, consecutiveFailures = 10), kind)
-        }
-    }
-
-    @Test
-    fun `a benign run is reported once, however long it lasts`() {
-        val c = clientWith(Recorder())
-
-        // CHURCH-PRESENTER-DESKTOP-68: one follower pointed at an address that never answered still
-        // filed a warning at 10, 20 … 100, 200 … 1000 timeouts. After the first, each said only that
-        // the link was still down.
-        for (kind in listOf("refused", "dns", "ping_timeout", "timeout")) {
+        // CHURCH-PRESENTER-DESKTOP-DM: reporting a benign run once, at its 10th failure, still filed
+        // on every launch, because the count starts again with the connect loop — a follower whose
+        // primary simply was not running reported "connection failed" each time the app started.
+        // The Log.warn breadcrumb and the Instance Link log keep every failure.
+        for (kind in listOf("refused", "dns", "ping_timeout", "timeout", "bad_address", "not_primary")) {
             val reported = (1..5_000).filter { n -> ConnectFailures.shouldReportConnectFailure(kind, n) }
-            assertEquals(listOf(10), reported, kind)
+            assertEquals(emptyList(), reported, kind)
         }
     }
 

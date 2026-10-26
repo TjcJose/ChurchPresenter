@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.rememberDialogState
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.api_key_hint
 import org.churchpresenter.strings.generated.resources.api_key_label
@@ -72,19 +71,20 @@ import org.churchpresenter.strings.generated.resources.save
 import org.churchpresenter.strings.generated.resources.tab_dictionary
 import org.churchpresenter.strings.generated.resources.unit_ms
 import org.churchpresenter.sharedui.utils.LocalMainWindowState
-import org.churchpresenter.sharedui.utils.centeredOnMainWindow
 import kotlinx.coroutines.delay
 import org.churchpresenter.sharedui.composables.SettingRow
-import org.churchpresenter.theme.ProvideUiFontScale
+import org.churchpresenter.theme.ProvideUiScale
 import org.churchpresenter.theme.components.SettingsTextField
 import org.churchpresenter.settings.BibleSyncMode
 import org.churchpresenter.settings.InstanceLinkRole
 import org.churchpresenter.settings.InstanceLinkSettings
 import org.churchpresenter.server.InstanceLinkStatus
 import org.churchpresenter.server.LiveStateDto
+import org.churchpresenter.server.normalizePrimaryHost
 import org.jetbrains.compose.resources.stringResource
 import org.churchpresenter.sharedui.composables.LabeledSwitch
 import org.churchpresenter.sharedui.composables.LabeledRadioButton
+import org.churchpresenter.sharedui.utils.rememberCenteredDialogState
 
 private const val STATUS_POLL_MS = 1000L
 private const val SECONDS_PER_MINUTE = 60
@@ -108,11 +108,7 @@ fun InstanceLinkDialog(
     if (!isVisible) return
 
     val mainWindowState = LocalMainWindowState.current
-    val dialogState = rememberDialogState(
-        position = centeredOnMainWindow(mainWindowState, 760.dp, 620.dp),
-        width = 760.dp,
-        height = 620.dp
-    )
+    val dialogState = rememberCenteredDialogState(mainWindowState, 760.dp, 620.dp)
 
     DialogWindow(
         onCloseRequest = onDismiss,
@@ -120,7 +116,7 @@ fun InstanceLinkDialog(
         title = stringResource(Res.string.instance_link_title),
         resizable = false
     ) {
-        ProvideUiFontScale {
+        ProvideUiScale {
             InstanceLinkDialogContent(
                 isVisible = isVisible,
                 settings = settings,
@@ -287,9 +283,16 @@ private class InstanceLinkForm(private val settings: InstanceLinkSettings) {
         followedLayers = LinkLayers.ALL.filter { it in chosen }
     }
 
+    /**
+     * The port to connect on: the Port field, or the one pasted into the Host field with the host
+     * (`192.168.0.112:8765`) when the Port field is empty.
+     */
+    fun port(): Int? = portText.toIntOrNull() ?: normalizePrimaryHost(host).port
+
+    /** The Host field reduced to the host alone — see [normalizePrimaryHost]. */
     fun edited(): InstanceLinkSettings = settings.copy(
-        primaryHost = host.trim(),
-        primaryPort = portText.toIntOrNull() ?: settings.primaryPort,
+        primaryHost = normalizePrimaryHost(host).host,
+        primaryPort = port() ?: settings.primaryPort,
         apiKey = apiKey.trim(),
         autoConnect = autoConnect,
         reconnectDelayMs = parseReconnectDelayMs(reconnectDelayText, settings.reconnectDelayMs),
@@ -528,11 +531,11 @@ Row(
     RaisedButton(
         shape = AppShape(6.dp),
         onClick = {
-            if (form.portText.toIntOrNull() == null) return@RaisedButton
+            if (form.port() == null) return@RaisedButton
             onConnect(form.edited())
             onDismiss()
         },
-        enabled = form.host.isNotBlank() && form.portText.toIntOrNull() != null,
+        enabled = form.host.isNotBlank() && form.port() != null,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary
         )

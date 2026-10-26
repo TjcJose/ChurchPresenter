@@ -36,6 +36,7 @@ import org.churchpresenter.strings.generated.resources.language_spanish
 import org.churchpresenter.strings.generated.resources.language_swahili
 import org.churchpresenter.strings.generated.resources.language_swedish
 import org.churchpresenter.strings.generated.resources.language_tagalog
+import org.churchpresenter.strings.generated.resources.language_tahitian
 import org.churchpresenter.strings.generated.resources.language_tamil
 import org.churchpresenter.strings.generated.resources.language_thai
 import org.churchpresenter.strings.generated.resources.language_turkish
@@ -71,6 +72,9 @@ import org.churchpresenter.strings.generated.resources.menu_check_for_updates
 import org.churchpresenter.strings.generated.resources.menu_contact_us
 import org.churchpresenter.strings.generated.resources.menu_language
 import org.churchpresenter.strings.generated.resources.menu_customize_theme
+import org.churchpresenter.strings.generated.resources.menu_actual_size
+import org.churchpresenter.strings.generated.resources.menu_zoom_out
+import org.churchpresenter.strings.generated.resources.menu_zoom_in
 import org.churchpresenter.strings.generated.resources.menu_view
 import org.churchpresenter.strings.generated.resources.tooltip_new_schedule
 import org.churchpresenter.strings.generated.resources.tooltip_open_schedule
@@ -95,6 +99,10 @@ fun FrameWindowScope.NavigationTopBar(
     /** Whether a custom accent has been saved, so View offers Custom beside the presets. */
     hasCustomTheme: Boolean = false,
     onCustomizeTheme: () -> Unit = {},
+    /** View → Zoom In / Zoom Out / Actual Size: the interface size of the app's own windows. */
+    onZoomIn: () -> Unit = {},
+    onZoomOut: () -> Unit = {},
+    onActualSize: () -> Unit = {},
     onLanguageChange: (Language) -> Unit = {},
     onNewSchedule: () -> Unit = {},
     onOpenSchedule: () -> Unit = {},
@@ -158,7 +166,8 @@ fun FrameWindowScope.NavigationTopBar(
             onClearSchedule)
         EditMenu(editLabel, editMnemonic, ::accelerator, onSettings, onStatistics)
         ConnectMenu(onConnectToInstance, onDisconnectInstance, isInstanceLinkConnected)
-        ViewMenu(theme, currentTheme, hasCustomTheme, onCustomizeTheme)
+        ViewMenu(theme, currentTheme, hasCustomTheme, onCustomizeTheme,
+            ZoomActions(onZoomIn, onZoomOut, onActualSize), ::accelerator)
         LanguageMenu(onLanguageChange)
         HelpMenu(helpLabel, helpMnemonic, ::accelerator, onGettingStarted, onShowHelper, onKeyboardShortcuts,
             onHowToBlog,
@@ -287,12 +296,17 @@ private fun MenuBarScope.ConnectMenu(
     }
 }
 
+/** The View menu's interface-size items, grouped so the menu takes one parameter for them. */
+private class ZoomActions(val zoomIn: () -> Unit, val zoomOut: () -> Unit, val actualSize: () -> Unit)
+
 @Composable
 private fun MenuBarScope.ViewMenu(
     theme: (ThemeMode) -> Unit,
     currentTheme: ThemeMode,
     hasCustomTheme: Boolean,
     onCustomizeTheme: () -> Unit,
+    zoom: ZoomActions,
+    accel: (ShortcutAction) -> KeyShortcut?,
 ) {
     Menu(stringResource(Res.string.menu_view), mnemonic = 'V') {
         // Every preset, from the enum. This was ten RadioButtonItems written out by hand, which
@@ -314,6 +328,19 @@ private fun MenuBarScope.ViewMenu(
             )
         }
         Item(stringResource(Res.string.menu_customize_theme), onClick = onCustomizeTheme)
+        Separator()
+        Item(
+            stringResource(Res.string.menu_zoom_in),
+            onClick = zoom.zoomIn,
+            shortcut = accel(ShortcutAction.ZOOM_IN),
+        )
+        Item(
+            stringResource(Res.string.menu_zoom_out),
+            onClick = zoom.zoomOut,
+            shortcut = accel(ShortcutAction.ZOOM_OUT),
+        )
+        // No key: Ctrl+0 is the quick background's reset, a live control.
+        Item(stringResource(Res.string.menu_actual_size), onClick = zoom.actualSize)
     }
 }
 
@@ -374,6 +401,7 @@ private val LANGUAGES = listOf(
     LanguageEntry("🇱🇰", Res.string.language_tamil, Language.TAMIL),
     LanguageEntry("🇵🇭", Res.string.language_tagalog, Language.TAGALOG),
     LanguageEntry("🇹🇿", Res.string.language_swahili, Language.SWAHILI),
+    LanguageEntry("🇵🇫", Res.string.language_tahitian, Language.TAHITIAN),
 )
 
 @Composable

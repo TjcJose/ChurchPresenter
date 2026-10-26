@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.rememberDialogState
 import org.churchpresenter.dialogs.songEditorBackgroundButton
 import org.churchpresenter.app.churchpresenter.utils.countDeckSlides
 import org.churchpresenter.bibletab.BibleBookAbbreviations
@@ -26,9 +25,9 @@ import org.churchpresenter.settings.AppSettings
 import org.churchpresenter.settings.PlanningCenterSettings
 import org.churchpresenter.sharedui.utils.AppWindowRoot
 import org.churchpresenter.sharedui.utils.LocalMainWindowState
-import org.churchpresenter.sharedui.utils.centeredOnMainWindow
 import org.churchpresenter.songs.EditSongDialog
 import org.churchpresenter.theme.ThemeMode
+import org.churchpresenter.sharedui.utils.rememberCenteredDialogState
 
 /*
  * The Planning Center import (`:planning-center`) with what it needs from the app filled in: the
@@ -42,7 +41,9 @@ internal fun MainDesktopScope.PlanningCenterImport(isVisible: Boolean, onDismiss
     val sink = remember(scheduleViewModel, onSettingsChange) {
         PlanningCenterImportSink(scheduleViewModel, onSettingsChange)
     }
-    PlanningCenterImportPane(isVisible, theme, appSettings.planningCenterSettings, sink, onDismiss)
+    PlanningCenterImportPane(
+        isVisible, theme, appSettings.planningCenterSettings, sink, onDismiss, appSettings = appSettings,
+    )
 }
 
 /**
@@ -57,6 +58,8 @@ internal fun PlanningCenterImportPane(
     sink: PlanningCenterImportSink,
     onDismiss: () -> Unit,
     window: PlanningCenterWindow = planningCenterWindow(theme),
+    /** The settings the outputs draw by, for the song editor's Output tab -- null leaves it out. */
+    appSettings: AppSettings? = null,
 ) {
     if (!isVisible) return
     // One Bible load per open dialog, reused for every item the plan has.
@@ -73,7 +76,7 @@ internal fun PlanningCenterImportPane(
         settings = settings,
         services = services,
         window = window,
-        editSong = planningCenterSongEditor(theme),
+        editSong = planningCenterSongEditor(theme, appSettings),
         onDismiss = onDismiss,
         onTokensRefreshed = sink::tokensRefreshed,
         onAddSong = sink::addSong,
@@ -151,11 +154,7 @@ private fun planningCenterWindow(theme: ThemeMode): PlanningCenterWindow = { spe
     val mainWindowState = LocalMainWindowState.current
     DialogWindow(
         onCloseRequest = spec.onClose,
-        state = rememberDialogState(
-            position = centeredOnMainWindow(mainWindowState, spec.width, spec.height),
-            width = spec.width,
-            height = spec.height,
-        ),
+        state = rememberCenteredDialogState(mainWindowState, spec.width, spec.height),
         title = spec.title,
         resizable = spec.resizable,
     ) {
@@ -167,7 +166,7 @@ private fun planningCenterWindow(theme: ThemeMode): PlanningCenterWindow = { spe
 }
 
 /** The song editor a plan's unmatched song is filled in with before it is saved. */
-internal fun planningCenterSongEditor(theme: ThemeMode): PlanningCenterSongEditor =
+internal fun planningCenterSongEditor(theme: ThemeMode, appSettings: AppSettings? = null): PlanningCenterSongEditor =
     { song, songbook, onEditDismiss, onSave ->
         EditSongDialog(
             backgroundButton = songEditorBackgroundButton,
@@ -176,6 +175,7 @@ internal fun planningCenterSongEditor(theme: ThemeMode): PlanningCenterSongEdito
             songbooks = listOf(songbook),
             isNewSong = true,
             theme = theme,
+            appSettings = appSettings,
             onDismiss = onEditDismiss,
             // Tempo and capo are not offered here (showTuningFields defaults off), so they come back unset.
             onSave = { savedSong, _ -> onSave(savedSong) },

@@ -28,6 +28,7 @@ import java.io.IOException
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,6 +54,7 @@ import org.churchpresenter.settings.PropDefinition
 import org.churchpresenter.settings.BackgroundSettings
 import org.churchpresenter.settings.SERVER_PORTS
 import org.churchpresenter.settings.utils.Constants
+import org.churchpresenter.signage.hub.SignageHub
 
 private const val PORT_SCAN_RANGE = 40
 
@@ -92,8 +94,20 @@ class CompanionServer(
      * every teardown.
      */
     private val shutdownGraceMs: Long = SHUTDOWN_GRACE_MS,
+    /**
+     * Where [requestStart], [requestStop] and [requestRestart] run, one at a time and in the order
+     * asked (`Dispatchers.IO` limited to one thread). A test passes a dispatcher it can drain, to
+     * wait for what a click asked for.
+     */
+    lifecycleDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(1),
 ) {
     internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * The scope the lifecycle requests (`CompanionServerLifecycle.kt`) run in. Not [scope]: [stop]
+     * cancels that scope's children, and would cancel the very request that called it.
+     */
+    internal val lifecycleScope = CoroutineScope(SupervisorJob() + lifecycleDispatcher)
 
     /** One thread's worth of [Dispatchers.Default]: [publishSongs] and [publishBible] run on it in turn. */
     internal val publishing = Dispatchers.Default.limitedParallelism(1)
@@ -233,6 +247,13 @@ class CompanionServer(
      */
     @Volatile
     var blockedClientIds: Set<String> = emptySet()
+
+    /**
+     * What each device on the Allowed list may do (mirrored from `RemoteClientManager`, like
+     * [blockedClientIds]). A device with no entry may do everything -- see [permits].
+     */
+    @Volatile
+    var devicePermissions: Map<String, DevicePermissions> = emptyMap()
 
     /** schedule item UUID → absolute local media file path — populated by updateSchedule, serves /api/media/stream */
     internal val _scheduleItemToMediaPath = ConcurrentHashMap<String, String>()
@@ -431,6 +452,28 @@ class CompanionServer(
      */
     @Volatile var devMode: Boolean = false
 
+    /** Whether signage is on -- kept current by the app: on while the Signage tab is shown. */
+    @Volatile var signageEnabled: Boolean = false
+        set(value) {
+            field = value
+            signageAdvert.refresh()
+        }
+
+    /**
+     * The signage screens this ChurchPresenter owns, set by the app. With it and [signageEnabled],
+     * the server answers `/api/signage/` and advertises itself over mDNS for the players to find.
+     */
+    @Volatile var signage: SignageHub? = null
+        set(value) {
+            field = value
+            signageAdvert.refresh()
+        }
+
+    /** Advertised while the server runs with signage on and a signage hub. */
+    private val signageAdvert = SignageAdvert {
+        signage?.takeIf { _isRunning.value && signageEnabled }?.let { SignageAdvert.Wanted(currentPort, it.ownerName) }
+    }
+
     /** The macros a remote client may run -- kept current by the app from its settings. */
     @Volatile var macros: List<Macro> = emptyList()
 
@@ -582,6 +625,7 @@ class CompanionServer(
             server?.start(wait = false)
             _isRunning.value = true
             _serverUrl.value = "http://$displayHost:$port"
+            signageAdvert.refresh()
             CrashReporter.breadcrumb("Server started on port $port", category = "server")
             scope.launch { pictures.clearDeviceUploads() }
         } catch (_: java.net.BindException) {
@@ -656,6 +700,7 @@ class CompanionServer(
                 )
                 browserSourceTransposeRoutes(this@CompanionServer)
                 qaRoutes(this@CompanionServer, json, scope)
+                signageRoutes(this@CompanionServer)
             }
     }
 
@@ -663,6 +708,10 @@ class CompanionServer(
     internal fun registeredRoutes(): List<RoutingNode> =
         server?.application?.pluginOrNull(RoutingRoot)?.getAllRoutes().orEmpty()
 
+    /**
+     * Stops the server and blocks until it has: for the caller that must not go on before it has
+     * (a test's teardown, a start-up already off the event thread). The UI uses [requestStop].
+     */
     fun stop() {
         tunnelManager.stop()
         server?.stop(shutdownGraceMs, maxOf(shutdownGraceMs, SHUTDOWN_TIMEOUT_MS))
@@ -670,6 +719,7 @@ class CompanionServer(
         scope.coroutineContext[Job]?.cancelChildren()
         _isRunning.value = false
         _serverUrl.value = ""
+        signageAdvert.refresh()
         CrashReporter.breadcrumb("Server stopped", category = "server")
     }
 

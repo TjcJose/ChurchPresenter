@@ -122,12 +122,14 @@ internal fun MainWindowScope.SettingsDialogs() {
                     customThemeColors = choice.colors,
                     uiFontFamily = choice.fontFamily,
                     uiFontScale = choice.fontScale,
+                    uiScale = choice.uiScale,
                     uiRowSpacing = choice.rowSpacing,
                 )
                 settingsManager.saveSettings(appSettings)
-                onThemeCustomizationChange(themeCustomizationFrom(appSettings))
+                onThemeCustomizationChange(themeCustomizationFrom(appSettings, screenMaxUiScale(window)))
             },
-            onDismiss = { showCustomizeThemeDialog = false; dialogDismissSignal++ }
+            onDismiss = { showCustomizeThemeDialog = false; dialogDismissSignal++ },
+            maxUiScale = screenMaxUiScale(window),
         )
     }
 }
@@ -216,6 +218,7 @@ internal fun MainWindowScope.ToolWindows() {
                 theme = theme,
                 songStorageDirectory = appSettings.songSettings.storageDirectory,
                 typicalSongSeconds = { song -> liveDurationLog.median(song.asDurationRow()) },
+                appSettings = appSettings,
                 // What it writes lands in the songs folder, which SongsViewModel
                 // already watches -- so the list behind this window reloads on
                 // its own rather than on close.

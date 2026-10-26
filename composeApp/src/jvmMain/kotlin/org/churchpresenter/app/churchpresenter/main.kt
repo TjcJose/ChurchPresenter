@@ -4,6 +4,9 @@ import org.churchpresenter.app.churchpresenter.utils.appTelemetryIdentity
 import org.churchpresenter.dialogs.showAlreadyRunningDialog
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.window.LocalWindowExceptionHandlerFactory
+import org.churchpresenter.app.churchpresenter.utils.toleratingDisposedOwnerRace
 import androidx.compose.runtime.CompositionLocalProvider
 import org.churchpresenter.profiles.LocalDevelopmentBuild
 import androidx.compose.runtime.getValue
@@ -42,6 +45,7 @@ import org.churchpresenter.lowerthird.render.LottieRenderCache
 import org.churchpresenter.server.CalendarSyncService
 import org.churchpresenter.settings.calendarFolder
 import org.churchpresenter.settings.utils.AppDataDir
+import org.churchpresenter.signage.hub.SignageHub
 import org.churchpresenter.settings.utils.Constants
 import org.churchpresenter.appsettings.AutoStartManager
 import org.churchpresenter.diagnostics.BuildIdentity
@@ -187,6 +191,18 @@ private fun runAsOutputGuard(args: Array<String>): Boolean {
     return true
 }
 
+/**
+ * With the website rendered off screen, the AWT event thread is also Chromium's browser thread, and
+ * on Linux skiko waits for the screen's refresh inside each buffer swap on that thread, so a playing
+ * video misses refreshes on every window. Skiko latches this on its first SkiaLayer; a value already
+ * set (`-Dskiko.vsync.enabled=true`) wins.
+ */
+private fun turnOffLinuxVsync() {
+    if (System.getProperty("os.name", "").startsWith("Linux") && System.getProperty("skiko.vsync.enabled") == null) {
+        System.setProperty("skiko.vsync.enabled", "false")
+    }
+}
+
 private fun setLatchedSystemProperties() {
     // Skiko latches this on its first SkiaLayer, so a later set is ignored.
     preferredRenderApi(System.getProperty("os.name", ""), DevFlags.renderApiOverride)?.let {
@@ -226,6 +242,8 @@ fun main(args: Array<String>) {
 
     // Before the first window: every window gets the app icon's pixel frames as it opens.
     AppWindowIcons.install()
+    // Before the first window: a Ctrl shortcut's typed character never reaches a text field.
+    installShortcutResidueFilter()
 
     // A dev build can stall its own UI on a schedule (-Dchurchpresenter.injectUiStall=<ms>,<everySec>)
     // to show what a stall costs the outputs -- see docs/SHOW_CONTROL.md, Output isolation.
@@ -236,6 +254,8 @@ fun main(args: Array<String>) {
     }
 
     val startupSettings = SettingsManager().loadSettings()
+    val offscreenWeb = startupSettings.projectionSettings.offscreenWebEnabled
+    if (offscreenWeb) turnOffLinuxVsync()
     CrashReporter.initialize(
         startupSettings.analyticsReportingEnabled,
         // BuildConfig is generated into :composeApp, so :diagnostics is told what this build is
@@ -262,7 +282,8 @@ fun main(args: Array<String>) {
     // report never carried. "default" means the platform's own choice, which is not the same fact
     // as any named API — a report from a machine on Direct3D-by-default and one pinned to it are
     // different evidence. Set here rather than with the availability tags below: a render fault
-    // can arrive before those run.
+    // can arrive before those run. This is the API asked for; what the main window actually draws
+    // with is render.api.actual, set once it has drawn (MainWindow).
     CrashReporter.setTag("render.api", System.getProperty("skiko.renderApi") ?: "default")
     // Which renderer ran is only half the fact: whether a GPU driver fault is an NVIDIA, AMD or
     // Intel problem is the axis such a group has to be split by, and no report carried it at all.
@@ -286,6 +307,9 @@ fun main(args: Array<String>) {
                 sessionMinutes = previousRun.sessionMinutes,
                 liveMinutes = previousRun.liveMinutes,
                 liveStalls = previousRun.liveStalls,
+                signageScreens = SignageHub.pairedScreensByPlatform(
+                    AppDataDir.resolve().toPath().resolve(SignageHub.DIR),
+                ),
             )
         },
         events = pendingUsageEvents,
@@ -312,8 +336,9 @@ fun main(args: Array<String>) {
         CrashReporter.reportException(throwable, context = "CoroutineExceptionHandler")
     }
 
-    CefManager.init()
+    CefManager.init(offscreen = offscreenWeb)
     CrashReporter.setTag("jcef.available", CefManager.initialized.toString())
+    CrashReporter.setTag("web.render", if (CefManager.offscreen) "offscreen" else "windowed")
     if (CefManager.macOsUnsupported) CrashReporter.setTag("jcef.macos_unsupported", "true")
     if (CefManager.windowsUnsupported) CrashReporter.setTag("jcef.windows_unsupported", "true")
 
@@ -350,6 +375,7 @@ fun main(args: Array<String>) {
 }
 
 /** Opens the windows, once [main] has done everything that comes before them. */
+@OptIn(ExperimentalComposeUiApi::class)
 private fun runApplication(
     startupSettings: AppSettings,
     coroutineExceptionHandler: CoroutineExceptionHandler,
@@ -363,10 +389,18 @@ private fun runApplication(
     application(exitProcessOnExit = true) {
         // Held above every window so each one -- the main window, Settings, every dialog -- is drawn
         // with the same accent, font and text size, and a change reaches all of them at once.
-        var themeCustomization by remember { mutableStateOf(themeCustomizationFrom(startupSettings)) }
+        var themeCustomization by remember {
+            mutableStateOf(themeCustomizationFrom(startupSettings, screenMaxUiScale(null)))
+        }
+        // Every window drops Compose's disposed-owner race (a drag delivered to a layout disposed
+        // under it) and hands anything else to the usual handler, which reports it.
+        val windowExceptions = LocalWindowExceptionHandlerFactory.current
         CompositionLocalProvider(
             LocalThemeCustomization provides themeCustomization,
             LocalDevelopmentBuild provides !BuildConfig.IS_RELEASE,
+            LocalWindowExceptionHandlerFactory provides remember(windowExceptions) {
+                toleratingDisposedOwnerRace(windowExceptions)
+            },
         ) {
             ChurchPresenterApp(coroutineExceptionHandler, settingsManager, relaunchedByGuard) {
                 themeCustomization = it
@@ -405,7 +439,6 @@ private fun ApplicationScope.ChurchPresenterApp(
                 },
                 typicalSeconds = { song -> liveDurationLog.median(song.asDurationRow()) },
                 endpoints = builtInRelayEndpoints,
-                multiComputer = { devMode },
             )
         }
         DisposableEffect(Unit) {
@@ -423,6 +456,7 @@ private fun ApplicationScope.ChurchPresenterApp(
         CompanionServerWiring(tunnelStatus)
         VirtualOutputs(effectiveAppSettings)
         StartupEffect()
+        SignageEffect()
         OutputGuardWiring(relaunchedByGuard) {
             AppWindows(effectiveAppSettings, calendarSync, tunnelStatus, tunnelUrl, onThemeCustomizationChange)
         }

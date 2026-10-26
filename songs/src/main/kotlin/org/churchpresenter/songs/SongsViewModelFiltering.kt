@@ -5,7 +5,8 @@ import org.churchpresenter.settings.utils.Constants
 import org.churchpresenter.songchords.ChordTransposer
 import org.churchpresenter.sharedui.utils.isHeaderLine
 import org.churchpresenter.sharedui.utils.isSlideBreak
-import org.churchpresenter.sharedui.utils.songBackgroundDirectiveOf
+import org.churchpresenter.sharedui.utils.isLyricDirective
+import org.churchpresenter.sharedui.utils.plainLyricLine
 
 private val WHITESPACE_RUN = Regex("\\s+")
 
@@ -16,7 +17,7 @@ internal fun SongsViewModel.applyFilters() {
     // Uses prefix matching so selecting "Kids" also shows "Kids/AM" and "Kids/PM"
     if (selectedSongbookState.value.isNotEmpty() && songbooksState.value.contains(selectedSongbookState.value)) {
         val selected = selectedSongbookState.value
-        filtered = if (selected == "/") {
+        filtered = if (selected == ROOT_SONGBOOK) {
             filtered.filter { it.songbook.isBlank() }
         } else {
             filtered.filter { it.songbook == selected || it.songbook.startsWith("$selected/") }
@@ -104,8 +105,8 @@ internal fun SongsViewModel.searchLyricsOf(song: SongItem): String {
     return lyricSearchText.getOrPut(song) {
         song.translationList().asSequence()
             .flatMap { it.lyrics.asSequence() }
-            .filterNot { isHeaderLine(it) || isSlideBreak(it) || songBackgroundDirectiveOf(it) != null }
-            .map { ChordTransposer.stripChords(it) }
+            .filterNot { isHeaderLine(it) || isSlideBreak(it) || isLyricDirective(it) }
+            .map { plainLyricLine(ChordTransposer.stripChords(it)) }
             .joinToString(" ")
             .replace(WHITESPACE_RUN, " ")
     }

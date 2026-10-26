@@ -48,18 +48,14 @@ private fun Route.infoRoutes(
                         "songs", "bible", "schedule", "presentations", "pictures", "status"
                     )
                     call.response.headers.append(Constants.HEADER_SERVER_VERSION, server.appVersion)
+                    val clientId = call.request.headers[Constants.HEADER_DEVICE_ID].orEmpty()
                     call.respond(
                         StatusResponse(
                             appVersion  = server.appVersion,
                             endpoints   = exposedEndpoints,
                             bibles      = bibleNames,
                             songbooks   = songbookNames,
-                            permissions = DevicePermissionsDto(
-                                canPresent       = true,
-                                canAddToSchedule = true,
-                                canUploadFiles   = server._fileUploadEnabled.value,
-                                maxMediaUploadMb = server._maxMediaUploadMb.value,
-                            ),
+                            permissions = server.permissionsDtoFor(clientId),
                         )
                     )
                 }
@@ -98,9 +94,10 @@ private fun Route.songRoutes(
                 }
 
                 /**
-                 * GET /api/songs/{number}[?songbook=Name]
+                 * GET /api/songs/{number}[?songbook=Name][&markup=true]
                  * Returns full song details including all lyric sections.
                  * Use ?songbook= to disambiguate when the same number exists in multiple songbooks.
+                 * The lines are plain words unless markup=true keeps the second voice's markup.
                  */
                 get("${Constants.ENDPOINT_SONGS}/{identifier}") {
                     if (!server.checkApiKey(call)) return@get
@@ -133,7 +130,8 @@ private fun Route.songRoutes(
                         return@get
                     }
                     server.logRest("/api/songs/{identifier}", HttpStatusCode.OK.value)
-                    call.respond(buildSongDetail(song))
+                    val keepMarkup = call.request.queryParameters[Constants.QUERY_PARAM_MARKUP].toBoolean()
+                    call.respond(buildSongDetail(song, keepMarkup))
                 }
 
                 /**
@@ -154,7 +152,7 @@ private fun Route.songSelectRoutes(
     scope: CoroutineScope,
 ) {
                 post("${Constants.ENDPOINT_SONGS}/{number}/select") {
-                    if (!server.checkApiKey(call)) return@post
+                    if (!call.allowedTo(server, DevicePermission.CONTROL_OUTPUT)) return@post
                     val number = call.parameters["number"] ?: run {
                         call.respond(HttpStatusCode.BadRequest, """{"error":"missing number"}""")
                         return@post

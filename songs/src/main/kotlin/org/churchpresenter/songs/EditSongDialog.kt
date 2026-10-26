@@ -23,16 +23,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindow
-import androidx.compose.ui.window.rememberDialogState
 import org.churchpresenter.calendar.model.formatDuration
 import org.churchpresenter.core.models.songs.SongBackground
 import org.churchpresenter.core.models.songs.SongItem
 import org.churchpresenter.core.models.songs.SongTuning
 import org.churchpresenter.sharedui.utils.AppWindowRoot
 import org.churchpresenter.sharedui.utils.LocalMainWindowState
-import org.churchpresenter.sharedui.utils.centeredOnMainWindow
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.cancel
 import org.churchpresenter.strings.generated.resources.edit_song
@@ -45,6 +44,12 @@ import org.churchpresenter.theme.ThemeMode
 import org.churchpresenter.theme.components.GhostButton
 import org.churchpresenter.theme.components.RaisedButton
 import org.jetbrains.compose.resources.stringResource
+import org.churchpresenter.sharedui.utils.rememberCenteredDialogState
+import org.churchpresenter.settings.AppSettings
+import org.churchpresenter.sharedui.composables.PaneTab
+import org.churchpresenter.sharedui.composables.PaneTabRow
+import org.churchpresenter.strings.generated.resources.song_pane_output
+import org.churchpresenter.strings.generated.resources.song_chords
 
 /** The Background button's slot: the app draws `:profiles`' `SongBackgroundButton` in it. */
 typealias SongBackgroundButtonSlot = @Composable (SongBackgroundButtonState) -> Unit
@@ -79,6 +84,11 @@ fun EditSongDialog(
     languageNames: List<String> = emptyList(),
     /** Stores renamed [languageNames] on Save. Null leaves the names out of the editor. */
     onLanguageNamesChange: ((List<String>) -> Unit)? = null,
+    /**
+     * The settings the outputs draw by, for the Output tab's previews of the slide being edited.
+     * Null leaves the tab out, and the right-hand pane is the chord preview alone.
+     */
+    appSettings: AppSettings? = null,
     onDismiss: () -> Unit,
     onSave: (SongItem, SongTuning) -> Unit,
     /**
@@ -92,11 +102,7 @@ fun EditSongDialog(
     val mainWindowState = LocalMainWindowState.current
     DialogWindow(
         onCloseRequest = onDismiss,
-        state = rememberDialogState(
-            position = centeredOnMainWindow(mainWindowState, 1120.dp, 760.dp),
-            width = 1120.dp,
-            height = 760.dp
-        ),
+        state = rememberCenteredDialogState(mainWindowState, 1120.dp, 760.dp),
         title = if (isNewSong) stringResource(Res.string.new_song) else stringResource(Res.string.edit_song),
         resizable = true
     ) {
@@ -117,6 +123,7 @@ fun EditSongDialog(
                 onApplyBackgroundToSongbook = onApplyBackgroundToSongbook,
                 languageNames = languageNames,
                 onLanguageNamesChange = onLanguageNamesChange,
+                appSettings = appSettings,
                 onDismiss = onDismiss,
                 onSave = onSave
             )
@@ -146,7 +153,7 @@ fun EditSongDialog(
  * the switch is remembered for the next song rather than reset with each one.
  */
 @Composable
-internal fun EditSongContent(
+fun EditSongContent(
     song: SongItem,
     backgroundButton: SongBackgroundButtonSlot,
     songbooks: List<String>,
@@ -165,6 +172,8 @@ internal fun EditSongContent(
     /** What each language is called install-wide -- see [EditSongDialog]. */
     languageNames: List<String> = emptyList(),
     onLanguageNamesChange: ((List<String>) -> Unit)? = null,
+    /** What the outputs draw by -- see [EditSongDialog]. */
+    appSettings: AppSettings? = null,
     onDismiss: () -> Unit,
     onSave: (SongItem, SongTuning) -> Unit
 ) {
@@ -175,7 +184,10 @@ internal fun EditSongContent(
     // Keyed on the setting rather than on the song: the switch is remembered across songs, so it
     // resyncs when the stored preference changes and survives opening the next song.
     var showChords by remember(chordsVisible) { mutableStateOf(chordsVisible) }
-    val isDuplicate = remember(state.number, state.title, state.songbook) { state.isDuplicateIn(existingSongs) }
+    val duplicates = remember(existingSongs) { SongDuplicateIndex(existingSongs) }
+    val isDuplicate = remember(duplicates, state.number, state.title, state.songbook) {
+        state.isDuplicateIn(duplicates)
+    }
 
     AppWindowRoot(theme = theme) {
         Surface(
@@ -215,16 +227,16 @@ internal fun EditSongContent(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                     VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    EditSongChordPreview(state, showChords)
+                    EditSongRightPane(state, showChords, appSettings)
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 EditSongFooter(
-                    stats = songStatsOf(buildPreviewSections(state.paneValue.text, showChords = false)),
+                    stats = rememberSongStats(state.paneValue.text),
                     typicalSeconds = typicalSeconds,
-                    saveEnabled = !isDuplicate &&
-                        (!isNewSong || (state.songbook.isNotBlank() && state.title.isNotBlank())),
+                    // A new song needs a title; with no song book it is kept at the top of the folder.
+                    saveEnabled = !isDuplicate && (!isNewSong || state.title.isNotBlank()),
                     onDismiss = onDismiss,
                     onSave = {
                         val updatedSong = state.toSongItem()
@@ -237,9 +249,55 @@ internal fun EditSongContent(
     }
 }
 
+/** The footer's counts for [text], worked out off the event thread as the song is typed. */
+@Composable
+private fun rememberSongStats(text: String): SongStats =
+    rememberBuiltOffEventThread(text, null, null) { songStatsOf(buildPreviewSections(text, showChords = false)) }
+
+/** The two views of the open pane on the right: as the outputs show it, and as the band reads it. */
+private enum class RightPane { OUTPUT, CHORDS }
+
+/**
+ * The right-hand pane: the Output and Chords tabs, or the chord preview alone where the editor was
+ * opened without the settings the outputs draw by.
+ */
+@Composable
+private fun EditSongRightPane(state: EditSongState, showChords: Boolean, appSettings: AppSettings?) {
+    val paneModifier = Modifier.width(RIGHT_PANE_WIDTH).fillMaxHeight()
+    if (appSettings == null) {
+        EditSongChordPreview(state, showChords, paneModifier)
+        return
+    }
+    var pane by remember { mutableStateOf(RightPane.OUTPUT) }
+    Column(paneModifier) {
+        PaneTabRow(Modifier.padding(start = 14.dp, top = 9.dp)) {
+            PaneTab(
+                stringResource(Res.string.song_pane_output),
+                pane == RightPane.OUTPUT,
+                Modifier.testTag(RIGHT_PANE_OUTPUT_TAG),
+            ) { pane = RightPane.OUTPUT }
+            PaneTab(
+                stringResource(Res.string.song_chords),
+                pane == RightPane.CHORDS,
+                Modifier.testTag(RIGHT_PANE_CHORDS_TAG),
+            ) { pane = RightPane.CHORDS }
+        }
+        when (pane) {
+            RightPane.OUTPUT -> EditSongOutputPane(state, appSettings, Modifier.weight(1f).fillMaxWidth())
+            RightPane.CHORDS -> EditSongChordPreview(state, showChords, Modifier.weight(1f).fillMaxWidth())
+        }
+    }
+}
+
+private val RIGHT_PANE_WIDTH = 452.dp
+
+/** Test handles for the right pane's two tabs. */
+internal const val RIGHT_PANE_OUTPUT_TAG = "song_editor_pane_output"
+internal const val RIGHT_PANE_CHORDS_TAG = "song_editor_pane_chords"
+
 /** The open pane as the band reads it, with the key, transposition and chord palette. */
 @Composable
-private fun EditSongChordPreview(state: EditSongState, showChords: Boolean) {
+private fun EditSongChordPreview(state: EditSongState, showChords: Boolean, modifier: Modifier) {
     SongChordPreview(
         text = state.paneValue.text,
         showChords = showChords,
@@ -253,7 +311,7 @@ private fun EditSongChordPreview(state: EditSongState, showChords: Boolean) {
         onInsertChord = { chord ->
             state.setPaneValue(insertSnippet(state.paneValue, "[$chord]", ownLine = false))
         },
-        modifier = Modifier.width(452.dp).fillMaxHeight(),
+        modifier = modifier,
     )
 }
 

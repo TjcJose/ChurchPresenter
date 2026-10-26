@@ -15,10 +15,15 @@ import java.util.concurrent.Executors
  *   ordinary drawing, and a single sample of it lands on whatever happened to be running.
  * - **At most [MAX_EVENTS] events a run**, one per stall. The live-stall count is kept whatever
  *   was sent.
- * - **Two causes group as one issue each** rather than one per page they surface on: the JVM
- *   loading code or Compose reading a string for the first time ([STALL_CAUSE_COLD_LOAD]), and any
+ * - **A stall groups on its screen and the app frame most of its samples were in**
+ *   ([stallEvent]), so one slow screen is one issue.
+ * - **Some causes group as one issue each** rather than one per page they surface on: the JVM
+ *   loading code or Compose reading a string for the first time ([STALL_CAUSE_COLD_LOAD]), any
  *   stall on a machine whose main window draws in software ([STALL_CAUSE_SOFTWARE]), where every
- *   frame is slow.
+ *   frame is slow, the whole process paused ([STALL_CAUSE_PAUSED]), and a stack with no app frame
+ *   ([STALL_CAUSE_NO_APP_FRAME]), per OS and render API.
+ * - **A stall whose every sample found the thread idle is counted but not sent**: the thread had
+ *   already moved on, so there is nothing to group it on.
  *
  * [send] is handed each event on the thread that answered the ping -- the event thread -- so the
  * app's sender passes it to a thread of its own ([sendToSentry]).
@@ -32,7 +37,7 @@ class UiStallReporter(
 
     @Volatile private var countsFrom = Long.MAX_VALUE
 
-    @Volatile private var software = false
+    @Volatile private var renderApi = RENDER_API_UNKNOWN
 
     private var liveSince = NONE
     private var liveMs = 0L
@@ -47,9 +52,12 @@ class UiStallReporter(
         if (countsFrom == Long.MAX_VALUE) countsFrom = clock() + SETTLE_MS
     }
 
-    /** Whether the main window ended up drawing in software, told once it has drawn. */
-    fun softwareRendering(isSoftware: Boolean) {
-        software = isSoftware
+    /**
+     * The render API the main window actually draws with (skiko's `renderApi`, which names a
+     * software renderer when it fell back to one), told once it has drawn.
+     */
+    fun renderApi(name: String) {
+        renderApi = name
     }
 
     /** Whether any output is showing content, told on every change. */
@@ -73,8 +81,9 @@ class UiStallReporter(
         val wasLive = liveSince != NONE && liveSince <= startedAt
         if (wasLive && stall.lateMs > GATE_MS) liveStalls++
         if (stall.lateMs < SEND_MIN_MS || sent >= MAX_EVENTS || sampledAsItAnswered(stall)) return
+        val event = stallEvent(stall, wasLive, renderApi) ?: return
         sent++
-        send(stallEvent(stall, wasLive, software))
+        send(event)
     }
 
     /** Minutes an output has been live this run, an interval still open included. */
@@ -140,50 +149,20 @@ data class StallEvent(
     val fingerprint: List<String>,
 )
 
-/**
- * The event for [stall]. It groups on the first frame of the app's own code, so one cause is one
- * issue; a stall stuck wholly in the JDK or a library groups on its top frame instead. A stall on a
- * [software]-drawn window, or one stuck loading code or a string for the first time, groups with
- * the rest of its kind, and says which in `stall.cause`.
- */
-fun stallEvent(stall: Stall, live: Boolean, software: Boolean = false): StallEvent {
-    val appFrame = stall.frames.indexOfFirst { it.className.startsWith(APP_PACKAGE) }
-    val cause = stall.frames.getOrNull(appFrame) ?: stall.frames.firstOrNull()
-    val kind = when {
-        software -> STALL_CAUSE_SOFTWARE
-        isColdLoad(stall.frames, appFrame) -> STALL_CAUSE_COLD_LOAD
-        else -> null
-    }
-    val tags = mapOf("stall.live" to live.toString(), "stall.length" to lengthBucket(stall.lateMs))
-    return StallEvent(
-        frames = stall.frames,
-        tags = kind?.let { tags + ("stall.cause" to it) } ?: tags,
-        extras = mapOf("stall.ms" to stall.lateMs.toString(), "stall.budget.ms" to stall.budgetMs.toString()),
-        fingerprint = listOf("ui-stall", kind ?: cause?.let { "${it.className}.${it.methodName}" } ?: "no-frames"),
-    )
-}
-
 /** `stall.cause` for a stall on a main window that draws in software. */
 const val STALL_CAUSE_SOFTWARE = "software-renderer"
 
 /** `stall.cause` for a stall loading code from the jar, or a string through Compose, the first time. */
 const val STALL_CAUSE_COLD_LOAD = "cold-load"
 
-/**
- * Whether the thread was inside the class loader or Compose's resource reader, above the app's own
- * code ([appFrame], or the whole stack when there is none): a first use, paid once a run.
- */
-internal fun isColdLoad(frames: List<StackTraceElement>, appFrame: Int): Boolean {
-    val above = if (appFrame < 0) frames else frames.subList(0, appFrame)
-    return above.any { frame -> COLD_LOADERS.any { frame.className.startsWith(it) } }
-}
+/** `stall.cause` for a stall whose first sample came long after the budget: the whole process was paused. */
+const val STALL_CAUSE_PAUSED = "process-paused"
 
-private val COLD_LOADERS = listOf(
-    "java.lang.ClassLoader",
-    "jdk.internal.loader.",
-    "java.lang.invoke.InnerClassLambdaMetafactory",
-    "org.jetbrains.compose.resources.",
-)
+/** `stall.cause` for a stall none of whose samples reached the app's own code. */
+const val STALL_CAUSE_NO_APP_FRAME = "no-app-frame"
+
+/** The render API a stall reports before the main window has said which one it draws with. */
+const val RENDER_API_UNKNOWN = "unknown"
 
 /**
  * Whether [stall]'s stack is the event thread already running the watchdog's own ping: the stall
@@ -191,7 +170,9 @@ private val COLD_LOADERS = listOf(
  * where the thread was stuck. Counted like any stall, but not sent -- it would group on the
  * watchdog itself.
  */
-internal fun sampledAsItAnswered(stall: Stall): Boolean = stall.frames.any { frame ->
+internal fun sampledAsItAnswered(stall: Stall): Boolean = sampledAsItAnswered(stall.frames)
+
+internal fun sampledAsItAnswered(frames: List<StackTraceElement>): Boolean = frames.any { frame ->
     WATCHDOG_CLASSES.any { frame.className.startsWith(it) }
 }
 
@@ -217,5 +198,3 @@ class UiStall(frames: List<StackTraceElement>) : Throwable(STALL_CONTEXT, null, 
         stackTrace = frames.toTypedArray()
     }
 }
-
-private const val APP_PACKAGE = "org.churchpresenter."

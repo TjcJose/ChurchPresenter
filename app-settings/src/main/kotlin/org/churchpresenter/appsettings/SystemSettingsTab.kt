@@ -134,7 +134,8 @@ fun SystemSettingsTab(
                 pictureSettings = s.pictureSettings.copy(storageDirectory = dir),
                 streamingSettings = s.streamingSettings.copy(lowerThirdFolder = dir),
                 presentationStorageDirectory = dir,
-                mediaStorageDirectory = dir
+                mediaStorageDirectory = dir,
+                scheduleStorageDirectory = dir,
             )
         }
     }
@@ -241,7 +242,7 @@ private val SIDE_COLUMN_WIDTH = 400.dp
 
 /** One switch, with the sentence explaining what turning it on means. */
 @Composable
-private fun GeneralToggleRow(
+internal fun GeneralToggleRow(
     label: StringResource,
     hint: String? = null,
     /** Why the last change did not take, shown under the label in the error colour. */
@@ -346,6 +347,8 @@ private fun GeneralCard(
                     }
                 }
             )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            OffscreenWebRow(settings, onSettingsChange)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             GeneralToggleRow(
                 label = Res.string.overlay_end_clears_display,
