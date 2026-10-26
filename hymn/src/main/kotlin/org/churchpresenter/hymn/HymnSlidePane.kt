@@ -3,6 +3,7 @@ package org.churchpresenter.hymn
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,7 +44,9 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,9 +54,9 @@ import kotlinx.coroutines.withContext
 import org.churchpresenter.core.models.presentation.PresentationLoadError
 import org.churchpresenter.core.models.schedule.ScheduleItem
 import org.churchpresenter.icons.generated.resources.Res as IconRes
-import org.churchpresenter.icons.generated.resources.ic_go_live
 import org.churchpresenter.icons.generated.resources.ic_skip_next
 import org.churchpresenter.icons.generated.resources.ic_skip_previous
+import org.churchpresenter.sharedui.composables.GoLiveButton
 import org.churchpresenter.sharedui.composables.LocalWentLive
 import org.churchpresenter.sharedui.composables.bibleListCard
 import org.churchpresenter.sharedui.composables.handleGoLiveKey
@@ -77,7 +80,6 @@ import org.churchpresenter.strings.generated.resources.presentation_error_librar
 import org.churchpresenter.strings.generated.resources.presentation_error_password_protected
 import org.churchpresenter.strings.generated.resources.presentation_error_render_failed
 import org.churchpresenter.theme.components.KeyIconButton
-import org.churchpresenter.theme.components.RaisedButton
 import org.churchpresenter.theme.keyboardFocusRing
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -276,7 +278,11 @@ private fun HymnSlideToolbar(
             Icon(painterResource(IconRes.drawable.ic_skip_next), contentDescription = null)
         }
         Spacer(Modifier.width(10.dp))
-        RaisedButton(
+        // The Presentation tab's own button, so the hymn's reads and answers exactly like a deck's:
+        // a TV-icon key whose tooltip carries the Go Live key ("Go Live (Enter)"), following a
+        // rebinding and dropping out when the action is unbound. `handleGoLiveKey` above already
+        // answers that key while this pane has focus.
+        GoLiveButton(
             onClick = {
                 if (presenterManager != null) {
                     hymnGoLiveAtSlide(
@@ -288,16 +294,10 @@ private fun HymnSlideToolbar(
                     )
                 }
             },
+            tooltipText = stringResource(Res.string.go_live),
             enabled = canNavigate && presenterManager != null,
-        ) {
-            Icon(
-                painterResource(IconRes.drawable.ic_go_live),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(stringResource(Res.string.go_live))
-        }
+            showsShortcut = true,
+        )
     }
 }
 
@@ -351,6 +351,37 @@ private fun HymnSlideStatus(slidesViewModel: PresentationViewModel, modifier: Mo
     }
 }
 
+/**
+ * How many columns the hymn slide grid fits into [availableWidth].
+ *
+ * Picks the count whose resulting cell width is closest to [HYMN_CELL_WIDTH] — the width the
+ * Presentation tab's `GridCells.Adaptive(HYMN_CELL_WIDTH)` lands on at full width. The nearest,
+ * rather than `Adaptive`'s floor, is the point: this pane is only ~2/3 of the tab, so its floor is
+ * far coarser, and `Adaptive` there hands it a few cells nearly twice the target. A 4:3 deck's
+ * 148dp-tall thumbnail is then wider than the deck and `ContentScale.Fit` pads it with black down
+ * each side, while the same deck shows edge to edge in Presentation.
+ *
+ * At least one column is always returned: a pane narrower than one cell still shows the slide, just
+ * narrower than the target, exactly as `Adaptive` would.
+ */
+internal fun hymnGridColumns(availableWidth: Dp): Int {
+    if (availableWidth <= 0.dp) return 1
+    val gap = HYMN_GRID_GAP.value
+    val width = availableWidth.value
+    // `n` cells plus their gaps span exactly `width` when `n = (width + gap) / (HYMN_CELL_WIDTH +
+    // gap)`, so the ideal count is that fraction and the cells that can really be drawn sit at the
+    // whole counts either side of it. Of those, the one whose resulting cell is nearest the target
+    // wins -- the smaller cell on a tie, so an error never widens a cell into a 4:3 deck's bars.
+    val ideal = (width + gap) / (HYMN_CELL_WIDTH + gap)
+    val floor = ideal.toInt()
+    return listOf(floor + 1, floor)
+        .filter { it >= 1 }
+        .minBy { columns -> abs((width - (columns - 1) * gap) / columns - HYMN_CELL_WIDTH) }
+}
+
+/** The slide grid's inter-cell gap, shared by the column maths and the grid itself. */
+internal val HYMN_GRID_GAP = 14.dp
+
 /** The thumbnail grid, one cell per slide of the selected hymn. */
 @Composable
 private fun HymnSlideGrid(
@@ -358,19 +389,29 @@ private fun HymnSlideGrid(
     onShowSlide: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 200.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
-            .bibleListCard()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(vertical = 18.dp),
-    ) {
-        itemsIndexed(slidesViewModel.slideFiles, key = { _, file -> file.absolutePath }) { index, slideFile ->
-            HymnSlideCell(slidesViewModel, index, slideFile, onShowSlide)
+    val card = modifier
+        .fillMaxWidth()
+        .padding(start = 4.dp, end = 4.dp, bottom = 4.dp)
+        .bibleListCard()
+        .padding(horizontal = 16.dp)
+    // The Presentation tab's grid spans the whole tab, so `GridCells.Adaptive(200.dp)` there hands it
+    // many cells ~200dp wide. This pane is only ~2/3 of the tab, and `Adaptive`'s floor on that width
+    // is far coarser: it would give a few cells of 230-290dp, wider than a 4:3 slide's 197.3dp, so
+    // every thumbnail of a 4:3 hymn is letterboxed with black down each side while the same deck
+    // shows edge to edge in Presentation. `hymnGridColumns` picks the count against that same 200dp
+    // target instead of flooring it. See `HYMN_CELL_WIDTH`.
+    BoxWithConstraints(modifier = card) {
+        val columns = hymnGridColumns(maxWidth)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(HYMN_GRID_GAP),
+            verticalArrangement = Arrangement.spacedBy(HYMN_GRID_GAP),
+            contentPadding = PaddingValues(vertical = 18.dp),
+        ) {
+            itemsIndexed(slidesViewModel.slideFiles, key = { _, file -> file.absolutePath }) { index, slideFile ->
+                HymnSlideCell(slidesViewModel, index, slideFile, onShowSlide)
+            }
         }
     }
 }

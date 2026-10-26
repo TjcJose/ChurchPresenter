@@ -17,6 +17,15 @@ import org.churchpresenter.slides.viewmodel.PresentationViewModel
 internal const val HYMN_LIST_WEIGHT = 0.9f
 internal const val HYMN_SLIDES_WEIGHT = 1.6f
 
+/**
+ * The hymn slide grid's target cell width, in dp — the same width the Presentation tab's
+ * `GridCells.Adaptive(200.dp)` lands on at full width. This pane is narrower, so its grid counts
+ * columns against this width instead of letting `Adaptive` hand it a few oversized cells: a 4:3
+ * deck's 148dp-tall cell would otherwise widen past the deck and `ContentScale.Fit` would pad it
+ * with black down each side, while the same deck shows edge to edge in Presentation.
+ */
+internal const val HYMN_CELL_WIDTH = 200f
+
 /** How often the player bar re-reads the player's position while a track is loaded. */
 private const val AUDIO_POLL_MS = 200L
 
