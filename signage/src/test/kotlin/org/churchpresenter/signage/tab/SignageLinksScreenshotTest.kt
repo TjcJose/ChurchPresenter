@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -16,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import org.churchpresenter.sharedui.screenshot.captureComponent
 import org.churchpresenter.signage.core.CecState
 import org.churchpresenter.signage.core.Features
+import org.churchpresenter.signage.core.MediaKind
 import org.churchpresenter.signage.core.Platform
 import org.churchpresenter.signage.core.PlayerMessage
 import org.churchpresenter.signage.core.WebTestRun
@@ -74,16 +74,47 @@ class SignageLinksScreenshotTest {
 
     @Test
     fun `a web page link moving smoothly`() = captureComponent(SECTION, "link_web", rootIndex = 1, drive = {
-        onAllNodesWithText("Address")[0].performTextInput(WEATHER)
+        field(LINK_ADDRESS_TAG).performTextInput(WEATHER)
         onNodeWithText("Smooth motion").performClick()
         waitForIdle()
     }) { LinkDialog(onAdd = {}, onDismiss = {}) }
 
     @Test
+    fun `a touch page kept to its own sites`() = captureComponent(SECTION, "link_touch", rootIndex = 1) {
+        LinkDialog(
+            onAdd = {},
+            onDismiss = {},
+            initial = LinkPlaylist(
+                "link:2", "Fall retreat sign-up", "https://www.churchcenter.com/registrations/events/123",
+                LinkKind.WEB, interactive = InteractiveLink(120, listOf("pay.churchcenter.com")),
+            ),
+        )
+    }
+
+    @Test
     fun `a stream link`() = captureComponent(SECTION, "link_stream", rootIndex = 1, drive = {
-        onAllNodesWithText("Address")[0].performTextInput(LIVE)
+        field(LINK_ADDRESS_TAG).performTextInput(LIVE)
         waitForIdle()
     }) { LinkDialog(onAdd = {}, onDismiss = {}) }
+
+    @Test
+    fun `editing a link`() = captureComponent(SECTION, "link_edit", rootIndex = 1) {
+        LinkDialog(
+            onAdd = {},
+            onDismiss = {},
+            initial = LinkPlaylist("link:1", "Countdown", "http://192.168.2.240/?font-size=300", LinkKind.WEB, 0, true),
+        )
+    }
+
+    @Test
+    fun `editing a picture`() = captureComponent(SECTION, "file_edit", rootIndex = 1) {
+        FileDialog(
+            FilePlaylist("file:1", "Welcome", "/Users/church/Pictures/welcome.png", MediaKind.IMAGE),
+            FakeDesktop().desktop,
+            { _, _ -> },
+            {},
+        )
+    }
 
     @Test
     fun `a card offering the test`() = captureComponent(SECTION, "test_offered") { Card(link) }
