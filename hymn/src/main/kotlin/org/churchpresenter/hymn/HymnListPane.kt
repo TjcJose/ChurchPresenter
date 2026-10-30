@@ -204,8 +204,8 @@ private fun HymnSearchField(viewModel: HymnViewModel, modifier: Modifier = Modif
 }
 
 /**
- * The query button: re-scans the hymn folders, so a PPT or track dropped in while the tab was
- * open turns up without leaving the tab.
+ * The query button: re-scans the hymn folders, so an image folder or track dropped in while the
+ * tab was open turns up without leaving the tab.
  */
 @Composable
 private fun HymnSearchButton(onClick: () -> Unit, modifier: Modifier = Modifier) {

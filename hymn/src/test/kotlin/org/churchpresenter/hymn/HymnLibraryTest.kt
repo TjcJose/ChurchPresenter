@@ -17,19 +17,23 @@ class HymnLibraryTest {
         Files.writeString(File(parent, name).toPath(), "x")
     }
 
+    /** A hymn folder [number] under [parent] with one slide image in it. */
+    private fun hymnFolder(parent: File, number: String): File =
+        File(parent, number).apply { mkdirs() }.also { write(it, "01.png") }
+
     @Test
     fun readsTheHymnFoldersFromTheSystemSettings() {
         val settings = readHymnSettingsFromSystemConfig()
         assumeTrue(settings.hymnTitleDirectory.isNotBlank())
-        assumeTrue(settings.pptDirectory.isNotBlank())
+        assumeTrue(settings.imagesDirectory.isNotBlank())
         val hymns = HymnLibrary.scan(settings)
         val titles = HymnLibrary.readTitleMap(settings.hymnTitleDirectory)
-        // Every slide file becomes a hymn named after it, its title whatever
+        // Every image folder becomes a hymn named after it, its title whatever
         // HymnTitle.txt says for that number, and a track only belongs to it
         // when the track's name is that number.
-        assertEquals(HymnLibrary.pptFiles(settings.pptDirectory).size, hymns.size)
+        assertEquals(HymnLibrary.hymnFolders(settings.imagesDirectory).size, hymns.size)
         hymns.forEach { hymn ->
-            assertEquals(hymn.pptFile?.nameWithoutExtension, hymn.number)
+            assertEquals(hymn.imageFolder?.name, hymn.number)
             assertEquals(titles[hymn.number] ?: "", hymn.title)
             hymn.pianoFile?.let { assertTrue(it.belongsTo(hymn.number), "${it.name} is not ${hymn.number}'s piano") }
             hymn.vocalFile?.let { assertTrue(it.belongsTo(hymn.number), "${it.name} is not ${hymn.number}'s vocal") }
@@ -66,14 +70,14 @@ class HymnLibraryTest {
 
     @Test
     fun scanMatchesTracksThatCarryTheirTitleAfterTheNumber() {
-        val ppt = newDir()
-        write(ppt, "051(甲).pptx")
+        val images = newDir()
+        hymnFolder(images, "051(甲)")
         val piano = newDir()
         write(piano, "051(甲) Piano.mp3")
         val vocal = newDir()
         write(vocal, "051 Vocal.mp3")
 
-        val hymn = HymnLibrary.scan(HymnSettings(ppt.path, piano.path, vocal.path, "")).single()
+        val hymn = HymnLibrary.scan(HymnSettings(images.path, piano.path, vocal.path, "")).single()
         // The piano's exact token matches; the vocal falls back to the number's leading digits.
         assertEquals("051(甲) Piano.mp3", hymn.pianoFile?.name)
         assertEquals("051 Vocal.mp3", hymn.vocalFile?.name)
@@ -103,13 +107,13 @@ class HymnLibraryTest {
 
     @Test
     fun aMissingOrUnreadableTitleFileLeavesTitlesBlank() {
-        val ppt = newDir()
-        write(ppt, "001.pptx")
+        val images = newDir()
+        hymnFolder(images, "001")
         val noTitleDir = newDir()
 
-        val blank = HymnLibrary.scan(HymnSettings(ppt.path, "", "", noTitleDir.path)).single()
+        val blank = HymnLibrary.scan(HymnSettings(images.path, "", "", noTitleDir.path)).single()
         assertEquals("", blank.title)
-        assertEquals("", HymnLibrary.scan(HymnSettings(ppt.path, "", "", "")).single().title)
+        assertEquals("", HymnLibrary.scan(HymnSettings(images.path, "", "", "")).single().title)
     }
 
     @Test
@@ -121,13 +125,16 @@ class HymnLibraryTest {
     }
 
     @Test
-    fun onlyPptAndPptxFilesAreSlides() {
-        val ppt = newDir()
-        write(ppt, "001.pptx")
-        write(ppt, "002.ppt")
-        write(ppt, "003.pdf")
-        write(ppt, "readme.txt")
-        assertEquals(listOf("001", "002"), HymnLibrary.scan(HymnSettings(ppt.path, "", "", "")).map { it.number })
+    fun onlyFoldersWithImagesAreHymns() {
+        val images = newDir()
+        hymnFolder(images, "001")
+        hymnFolder(images, "002")
+        // A folder with no images is not a hymn — it carries no slides.
+        File(images, "003").mkdirs()
+        // Loose files and non-image files in the images folder are ignored.
+        write(images, "004.pdf")
+        write(images, "readme.txt")
+        assertEquals(listOf("001", "002"), HymnLibrary.scan(HymnSettings(images.path, "", "", "")).map { it.number })
     }
 
     /** Whether [file]'s name is [number] itself, or — for a number carrying text — its leading digits. */

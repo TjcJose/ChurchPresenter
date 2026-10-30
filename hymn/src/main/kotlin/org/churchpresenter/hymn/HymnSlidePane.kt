@@ -1,5 +1,10 @@
 package org.churchpresenter.hymn
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,6 +36,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -42,10 +50,13 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,28 +68,36 @@ import org.churchpresenter.icons.generated.resources.Res as IconRes
 import org.churchpresenter.icons.generated.resources.ic_skip_next
 import org.churchpresenter.icons.generated.resources.ic_skip_previous
 import org.churchpresenter.sharedui.composables.GoLiveButton
+import org.churchpresenter.sharedui.composables.HIDDEN_TILE_ALPHA
+import org.churchpresenter.sharedui.composables.HiddenBadge
 import org.churchpresenter.sharedui.composables.LocalWentLive
+import org.churchpresenter.sharedui.composables.SlideshowHideToggle
 import org.churchpresenter.sharedui.composables.bibleListCard
 import org.churchpresenter.sharedui.composables.handleGoLiveKey
+import org.churchpresenter.sharedui.composables.hoverLift
 import org.churchpresenter.sharedui.models.Presenting
 import org.churchpresenter.sharedui.utils.LocalShortcuts
 import org.churchpresenter.slides.SlidesOutput
 import org.churchpresenter.slides.tabs.PresentationLiveSlideEffect
 import org.churchpresenter.slides.tabs.PresentationNextSlideEffect
-import org.churchpresenter.slides.tabs.SlideThumbnail
 import org.churchpresenter.slides.tabs.presentationGoesBack
 import org.churchpresenter.slides.tabs.presentationGoesForward
+import org.churchpresenter.slides.utils.PictureDecoder
 import org.churchpresenter.slides.viewmodel.PresentationViewModel
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.go_live
-import org.churchpresenter.strings.generated.resources.hymn_no_ppt
+import org.churchpresenter.strings.generated.resources.hymn_no_slides
 import org.churchpresenter.strings.generated.resources.hymn_select_hymn
 import org.churchpresenter.strings.generated.resources.hymn_slide_count
+import org.churchpresenter.strings.generated.resources.loading
 import org.churchpresenter.strings.generated.resources.loading_slides
+import org.churchpresenter.strings.generated.resources.picture_thumbnail_unreadable
 import org.churchpresenter.strings.generated.resources.presentation_error_empty_document
 import org.churchpresenter.strings.generated.resources.presentation_error_library_missing
 import org.churchpresenter.strings.generated.resources.presentation_error_password_protected
 import org.churchpresenter.strings.generated.resources.presentation_error_render_failed
+import org.churchpresenter.strings.generated.resources.slide_number
+import org.churchpresenter.theme.AppShape
 import org.churchpresenter.theme.components.KeyIconButton
 import org.churchpresenter.theme.keyboardFocusRing
 import org.jetbrains.compose.resources.painterResource
@@ -103,7 +122,7 @@ internal fun HymnSlidePane(
     viewModel: HymnViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val slides = hymn?.takeIf { it.pptFile != null }
+    val slides = hymn?.takeIf { it.imageFolder != null }
     val scope = rememberCoroutineScope()
     val wentLive = LocalWentLive.current
     val shortcuts = LocalShortcuts.current
@@ -113,7 +132,7 @@ internal fun HymnSlidePane(
 
     // Take the keyboard once a hymn's slides are on screen, like the Presentation tab after its
     // load, so the arrow keys page and Enter goes live without a click on the grid first.
-    LaunchedEffect(slides?.pptFile?.absolutePath, slidesViewModel.slideFiles.isNotEmpty()) {
+    LaunchedEffect(slides?.imageFolder?.absolutePath, slidesViewModel.slideFiles.isNotEmpty()) {
         if (slidesViewModel.slideFiles.isNotEmpty()) focusRequester.requestFocus()
     }
 
@@ -168,9 +187,9 @@ internal fun HymnSlidePane(
     ) {
         HymnPlayerBar(viewModel, Modifier.fillMaxWidth())
         if (slides != null) {
-            val file = slides.pptFile!!
-            LaunchedEffect(file.absolutePath) {
-                slidesViewModel.loadPresentationByPath(file.absolutePath)
+            val folder = slides.imageFolder!!
+            LaunchedEffect(folder.absolutePath) {
+                slidesViewModel.loadImageFolder(folder)
             }
             HymnSlideToolbar(
                 hymn = slides,
@@ -214,19 +233,18 @@ private fun HymnSlideBody(
     modifier: Modifier = Modifier,
 ) {
     when {
-        // No hymn selected, or the selected hymn has no PPT file.
+        // No hymn selected, or the selected hymn has no slide folder.
         slides == null -> HymnEmptyState(
-            stringResource(if (hymn == null) Res.string.hymn_select_hymn else Res.string.hymn_no_ppt),
+            stringResource(if (hymn == null) Res.string.hymn_select_hymn else Res.string.hymn_no_slides),
             modifier,
         )
         // A different hymn's deck is still selected — a switch just happened and the new
         // one hasn't started loading — so keep the loading state rather than flash the
         // previous hymn's slides.
-        slidesViewModel.selectedPresentation?.absolutePath != slides.pptFile?.absolutePath ->
+        slidesViewModel.selectedPresentation?.absolutePath != slides.imageFolder?.absolutePath ->
             HymnSlideStatus(slidesViewModel, modifier)
-        // Slides land one at a time while a PPT renders, so the grid appears and grows as
-        // each one arrives — the same incremental reveal the Presentation tab has, which
-        // keeps a many-page file from looking stuck.
+        // The folder's images are the slides; once they are loaded the grid shows them, growing
+        // in place exactly like the Presentation tab's thumbnails.
         slidesViewModel.slideFiles.isNotEmpty() -> HymnSlideGrid(
             slidesViewModel = slidesViewModel,
             onShowSlide = onShowSlide,
@@ -416,6 +434,16 @@ private fun HymnSlideGrid(
     }
 }
 
+/** Grid tile size — the largest side a thumbnail is decoded to, matching the Pictures tab. */
+private const val HYMN_THUMBNAIL_MAX_DIMENSION = 400
+
+/** One hymn slide's thumbnail, in the shape the Pictures tab's tiles take. */
+private sealed interface HymnTileState {
+    object Loading : HymnTileState
+    data class Ready(val bitmap: ImageBitmap) : HymnTileState
+    object Failed : HymnTileState
+}
+
 @Composable
 private fun HymnSlideCell(
     slidesViewModel: PresentationViewModel,
@@ -423,21 +451,100 @@ private fun HymnSlideCell(
     slideFile: File,
     onShowSlide: (Int) -> Unit,
 ) {
-    // Decode off the composition thread, like the Presentation tab's cells; a missing or corrupt
-    // file just stays a blank thumbnail instead of crashing the grid.
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, slideFile) {
-        value = withContext(Dispatchers.IO) { decodeSlide(slideFile) }
+    // Decode off the composition thread, downscaled to a grid tile the way the Pictures tab does —
+    // never the display's resolution. A file that cannot be read is shown as "unreadable" rather
+    // than a perpetual "loading", the way PictureTileImage does.
+    val state by produceState<HymnTileState>(HymnTileState.Loading, slideFile) {
+        value = withContext(Dispatchers.IO) {
+            PictureDecoder
+                .decodeScaledOrNull(slideFile, HYMN_THUMBNAIL_MAX_DIMENSION, HYMN_THUMBNAIL_MAX_DIMENSION)
+                ?.toComposeImageBitmap()
+                ?.let { HymnTileState.Ready(it) }
+                ?: HymnTileState.Failed
+        }
     }
-    SlideThumbnail(
-        slide = bitmap,
+    HymnPictureTile(
+        state = state,
         slideNumber = index + 1,
-        buildCount = slidesViewModel.deck?.slides?.getOrNull(index)?.timeline?.stepCount ?: 0,
         isSelected = slidesViewModel.selectedSlideIndex == index,
         isHidden = index in slidesViewModel.hiddenSlides,
         onToggleHidden = { slidesViewModel.toggleSlideHidden(index) },
         onClick = { slidesViewModel.selectSlide(index) },
         onDoubleClick = { onShowSlide(index) },
     )
+}
+
+/** A slide tile drawn like the Pictures tab's: cropped to fill, with a loading/unreadable state. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HymnPictureTile(
+    state: HymnTileState,
+    slideNumber: Int,
+    isSelected: Boolean,
+    isHidden: Boolean,
+    onToggleHidden: () -> Unit,
+    onClick: () -> Unit,
+    onDoubleClick: () -> Unit,
+) {
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant
+    Column(
+        modifier = Modifier
+            .hoverLift(AppShape(8.dp))
+            .clip(AppShape(8.dp))
+            .border(2.dp, borderColor, AppShape(8.dp))
+            .combinedClickable(onClick = onClick, onDoubleClick = onDoubleClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(148.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            when (state) {
+                is HymnTileState.Ready -> Image(
+                    bitmap = state.bitmap,
+                    contentDescription = stringResource(Res.string.slide_number, slideNumber),
+                    modifier = Modifier.fillMaxSize().alpha(if (isHidden) HIDDEN_TILE_ALPHA else 1f),
+                    contentScale = ContentScale.Crop,
+                )
+                HymnTileState.Failed -> Text(
+                    text = stringResource(Res.string.picture_thumbnail_unreadable),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                HymnTileState.Loading -> Text(
+                    text = stringResource(Res.string.loading),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (isHidden) HiddenBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(Res.string.slide_number, slideNumber),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.5.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                ),
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
+                },
+                maxLines = 1,
+            )
+            SlideshowHideToggle(hidden = isHidden, position = slideNumber - 1, onToggle = onToggleHidden)
+        }
+    }
 }
 
 /** Puts slide [index] of the selected hymn live, over the presentation path. */
@@ -473,11 +580,9 @@ private fun hymnGoLiveAtSlide(
     }
 }
 
-private fun decodeSlide(file: File): ImageBitmap? = try {
-    org.jetbrains.skia.Image.makeFromEncoded(file.readBytes()).toComposeImageBitmap()
-} catch (_: Exception) {
-    null
-}
+private fun decodeSlide(file: File): ImageBitmap? = runCatching {
+    PictureDecoder.decode(file).toComposeImageBitmap()
+}.getOrNull()
 
 @Composable
 private fun HymnLiveSlideEffects(

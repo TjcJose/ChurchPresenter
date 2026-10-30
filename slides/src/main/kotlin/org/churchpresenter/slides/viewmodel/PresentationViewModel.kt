@@ -174,6 +174,35 @@ class PresentationViewModel private constructor(
     fun loadPresentationByPath(filePath: String) = addPresentation(File(filePath))
 
     /**
+     * Loads a hymn's slides straight from a folder of image files — no deck to parse or rasterise;
+     * the images are the slides, taken in file-name order the way the Pictures tab loads a folder.
+     *
+     * The folder is the hymn's identity ([selectedPresentation]) the way a deck file is for a
+     * presentation, so the tab's selection, hidden-slides and go-live machinery all work unchanged;
+     * only [deck] stays null, so the build-step paths ([presentationShowSlide]/
+     * [advancePresentationStep]) are skipped and Next/Previous page the images directly.
+     */
+    fun loadImageFolder(folder: File) {
+        if (!folder.exists() || !folder.isDirectory) return
+        val existingFile = state.presentations.find { it.absolutePath == folder.absolutePath }
+        if (existingFile == null) state.presentations.add(folder)
+        state.selectedPresentation.value = existingFile ?: folder
+        state.remotePresentationPath.value = null
+        state.selectedSlideIndex.value = 0
+        parts.hidden.loadFor(existingFile ?: folder)
+        state.loadError.value = null
+        activeLoadJob?.cancel()
+        val images = folder.listFiles { f -> f.isFile && f.extension.lowercase() in PICTURE_EXTENSIONS }
+            ?.sortedBy { it.name } ?: emptyList()
+        state.clearCurrentSlideState()
+        state.slideFiles.addAll(images)
+        state.totalSlides.value = images.size
+        parts.hidden.settleOnShownSlide()
+        state.loadGeneration.value++
+        state.isLoading.value = false
+    }
+
+    /**
      * Loads a presentation from an Instance Link primary when [filePath] doesn't resolve on this
      * machine (e.g. a mirrored schedule item whose file lives on a network drive mounted
      * differently, or not mounted at all, here). Downloads each slide's JPEG bytes via [fetchBytes]

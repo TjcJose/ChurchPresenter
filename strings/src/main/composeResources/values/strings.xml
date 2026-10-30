@@ -3747,14 +3747,14 @@
     <string name="search_hymns">Search hymns...</string>
     <string name="hymn_number">Number</string>
     <string name="hymn_settings">Hymn folders</string>
-    <string name="hymn_settings_hint">Where the hymn PPT files, their piano and vocal mp3s, and HymnTitle.txt live. The PPT file name is the hymn number; its title is read from HymnTitle.txt.</string>
-    <string name="hymn_ppt_directory">Hymn PPT</string>
+    <string name="hymn_settings_hint">Where the hymn slide images, their piano and vocal mp3s, and HymnTitle.txt live. Each hymn is a folder named by its number under the images folder; its title is read from HymnTitle.txt.</string>
+    <string name="hymn_images_directory">Hymn images</string>
     <string name="hymn_piano_directory">Piano mp3s</string>
     <string name="hymn_vocal_directory">Vocal mp3s</string>
     <string name="hymn_title_directory">HymnTitle.txt</string>
     <string name="hymn_no_folder">Set the hymn folders in Settings → System to load hymns.</string>
     <string name="hymn_select_hymn">Select a hymn to see its slides</string>
-    <string name="hymn_no_ppt">This hymn has no PPT file — put it in the hymn folder to see its slides.</string>
+    <string name="hymn_no_slides">This hymn has no slides — put its images in a folder named by its number under the hymn images folder.</string>
     <string name="hymn_slide_count">%1$d / %2$d</string>
     <string name="hymn_playing">Playing %1$s</string>
     <string name="hymn_ppt_loading_failed">This hymn\'s slides could not be loaded.</string>

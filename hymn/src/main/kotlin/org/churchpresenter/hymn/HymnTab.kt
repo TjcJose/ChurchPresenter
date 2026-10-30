@@ -39,7 +39,7 @@ private const val AUDIO_POLL_MS = 200L
  * (`Presenting.PRESENTATION`).
  *
  * The slide machinery is `:slides`' own [PresentationViewModel] taken whole; this tab only drives
- * it with the selected hymn's PPT file. Audio plays one hymn mp3 at a time through
+ * it with the selected hymn's image folder (loaded as slides via `loadImageFolder`). Audio plays one hymn mp3 at a time through
  * [HymnAudioPlayer], which never touches vlcj directly. Both view models are handed in — the main
  * screen owns them, so what is selected and what is playing survive a switch to another tab.
  */
@@ -64,7 +64,7 @@ fun HymnTab(
     // the operator had open. Held by the ViewModel until the library has scanned it in.
     LaunchedEffect(selectedHymnItem, selectedHymnItemVersion) {
         val item = selectedHymnItem as? ScheduleItem.PresentationItem ?: return@LaunchedEffect
-        viewModel.selectByPptPath(item.filePath)
+        viewModel.selectByFolderPath(item.filePath)
     }
     LaunchedEffect(appSettings.projectionSettings.audioOutputDeviceId) {
         viewModel.setAudioOutputDevice(appSettings.projectionSettings.audioOutputDeviceId)
@@ -82,12 +82,12 @@ fun HymnTab(
             viewModel = viewModel,
             vlcAvailable = vlcAvailable,
             onAddToSchedule = { hymn ->
-                hymn.pptFile?.let { file ->
+                hymn.imageFolder?.let { folder ->
                     onAddToSchedule?.invoke(
-                        file.absolutePath,
-                        file.nameWithoutExtension,
+                        folder.absolutePath,
+                        folder.name,
                         slideCountFor(slidesViewModel, hymn),
-                        file.extension.lowercase(),
+                        "images",
                         hymn.number,
                     )
                 }
@@ -106,7 +106,7 @@ fun HymnTab(
 
 /** How many slides an Add to Schedule knows for [hymn]: the loaded count only when it is the one on screen. */
 private fun slideCountFor(slidesViewModel: PresentationViewModel, hymn: HymnItem): Int =
-    if (slidesViewModel.selectedPresentation?.absolutePath == hymn.pptFile?.absolutePath) {
+    if (slidesViewModel.selectedPresentation?.absolutePath == hymn.imageFolder?.absolutePath) {
         slidesViewModel.slideFiles.size
     } else {
         0

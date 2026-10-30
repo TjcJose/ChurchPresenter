@@ -69,7 +69,7 @@ class HymnAudioPlayerTest {
     private fun pianoHymn(fileName: String = "051.mp3") = HymnItem(
         number = "051(甲)",
         title = "Title A",
-        pptFile = File("051(甲).pptx"),
+        imageFolder = File("051(甲)"),
         pianoFile = File(fileName),
         vocalFile = File("051 vocal.mp3"),
     )
@@ -107,7 +107,7 @@ class HymnAudioPlayerTest {
     fun aTrackWithNoFilePlaysNothing() {
         val fake = FakePlayer()
         val audio = HymnAudioPlayer(openPlayer = { fake })
-        val hymn = HymnItem("129", "Title", File("129.pptx"), pianoFile = null, vocalFile = null)
+        val hymn = HymnItem("129", "Title", File("129"), pianoFile = null, vocalFile = null)
 
         assertNull(audio.start(HymnAudioKind.PIANO, hymn, 1f, ""))
         assertNull(audio.start(HymnAudioKind.VOCAL, hymn, 1f, ""))

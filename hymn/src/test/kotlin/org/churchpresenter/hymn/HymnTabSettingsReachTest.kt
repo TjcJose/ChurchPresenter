@@ -22,10 +22,10 @@ import kotlin.test.Test
 class HymnTabSettingsReachTest {
 
     private fun libraryFor(settings: HymnSettings): List<HymnItem> =
-        if (settings.pptDirectory.isBlank()) {
+        if (settings.imagesDirectory.isBlank()) {
             emptyList()
         } else {
-            listOf(HymnItem("001", "Amazing Grace", File("001.pptx"), null, null))
+            listOf(HymnItem("001", "Amazing Grace", File("001"), null, null))
         }
 
     @Test
@@ -34,7 +34,7 @@ class HymnTabSettingsReachTest {
         setContent {
             MaterialTheme {
                 HymnTab(
-                    appSettings = AppSettings(hymnSettings = HymnSettings(pptDirectory = "C:/hymns")),
+                    appSettings = AppSettings(hymnSettings = HymnSettings(imagesDirectory = "C:/hymns")),
                     presenterManager = null,
                     viewModel = viewModel,
                     slidesViewModel = PresentationViewModel(),
@@ -62,7 +62,7 @@ class HymnTabSettingsReachTest {
         waitForIdle()
         onAllNodesWithText("001").assertCountEquals(0)
 
-        settingsState.value = HymnSettings(pptDirectory = "C:/hymns")
+        settingsState.value = HymnSettings(imagesDirectory = "C:/hymns")
         waitForIdle()
         onAllNodesWithText("001").assertCountEquals(1)
     }

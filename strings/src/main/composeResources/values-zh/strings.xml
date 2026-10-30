@@ -3647,14 +3647,14 @@
     <string name="search_hymns">搜索赞美诗…</string>
     <string name="hymn_number">序号</string>
     <string name="hymn_settings">赞美诗文件夹</string>
-    <string name="hymn_settings_hint">赞美诗 PPT 文件、钢琴与人声 mp3 以及 HymnTitle.txt 所在的位置。PPT 文件名就是赞美诗序号；标题从 HymnTitle.txt 读取。</string>
-    <string name="hymn_ppt_directory">赞美诗 PPT</string>
+    <string name="hymn_settings_hint">赞美诗幻灯片图片、钢琴与人声 mp3 以及 HymnTitle.txt 所在的位置。每首赞美诗是图片文件夹下一个以序号命名的子文件夹；标题从 HymnTitle.txt 读取。</string>
+    <string name="hymn_images_directory">赞美诗图片</string>
     <string name="hymn_piano_directory">钢琴 mp3</string>
     <string name="hymn_vocal_directory">人声 mp3</string>
     <string name="hymn_title_directory">HymnTitle.txt</string>
     <string name="hymn_no_folder">请在“设置 → 系统”中设置赞美诗文件夹以加载赞美诗。</string>
     <string name="hymn_select_hymn">选择一首赞美诗查看其幻灯片</string>
-    <string name="hymn_no_ppt">这首赞美诗没有 PPT 文件——请把它放进赞美诗文件夹以查看其幻灯片。</string>
+    <string name="hymn_no_slides">这首赞美诗没有幻灯片——请在赞美诗图片文件夹下以序号命名一个子文件夹并放入图片。</string>
     <string name="hymn_slide_count">%1$d / %2$d</string>
     <string name="hymn_playing">正在播放 %1$s</string>
     <string name="hymn_ppt_loading_failed">无法加载这首赞美诗的幻灯片。</string>

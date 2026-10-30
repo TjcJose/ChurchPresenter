@@ -4,34 +4,37 @@ import org.churchpresenter.settings.HymnSettings
 import java.io.File
 
 /**
- * Scans the four hymn folders into the library: one [HymnItem] per PPT file, its title resolved
- * from `HymnTitle.txt`, its piano and vocal mp3s matched by number.
+ * Scans the four hymn folders into the library: one [HymnItem] per hymn's image folder, its title
+ * resolved from `HymnTitle.txt`, its piano and vocal mp3s matched by number.
  *
- * The matching rule lives here and here only: a file's *name* is its number — the token before the
- * first space, since tracks keep their titles ("001 Title.mp3" belongs to "001"). A track
- * is the file named exactly by that number, or — when the number carries text ("051(甲)") — the
- * file named by its leading digits ("051"), because a physical CD rip often keeps one plain-number
- * file for the siblings. `HymnTitle.txt` sits in its own folder; a missing or unreadable file
- * leaves every title blank rather than failing the scan.
+ * The matching rule lives here and here only: a track file's *name* is its number — the token
+ * before the first space, since tracks keep their titles ("001 Title.mp3" belongs to "001"). A
+ * track is the file named exactly by that number, or — when the number carries text ("051(甲)") —
+ * the file named by its leading digits ("051"), because a physical CD rip often keeps one
+ * plain-number file for the siblings. `HymnTitle.txt` sits in its own folder; a missing or
+ * unreadable file leaves every title blank rather than failing the scan.
+ *
+ * A hymn's slides are the image files in its folder, taken in file-name order — the same order the
+ * Pictures tab loads a folder's images in.
  */
 object HymnLibrary {
 
     const val TITLE_FILE_NAME = "HymnTitle.txt"
 
-    /** The slide extensions a hymn's PPT folder is scanned for. */
-    val PPT_EXTENSIONS: Set<String> = setOf("ppt", "pptx")
+    /** The image extensions a hymn's slide folder is scanned for. */
+    val IMAGE_EXTENSIONS: Set<String> = setOf("jpg", "jpeg", "png", "gif", "bmp", "webp", "heic", "heif")
 
     private const val AUDIO_EXTENSION = "mp3"
 
     fun scan(settings: HymnSettings): List<HymnItem> {
         val titles = readTitleMap(settings.hymnTitleDirectory)
-        return pptFiles(settings.pptDirectory)
-            .map { file ->
-                val number = file.nameWithoutExtension
+        return hymnFolders(settings.imagesDirectory)
+            .map { folder ->
+                val number = folder.name
                 HymnItem(
                     number = number,
                     title = titles[number] ?: "",
-                    pptFile = file,
+                    imageFolder = folder,
                     pianoFile = matchAudio(settings.pianoDirectory, number),
                     vocalFile = matchAudio(settings.vocalDirectory, number),
                 )
@@ -51,9 +54,14 @@ object HymnLibrary {
         return HymnTitleParser.parse(text)
     }
 
-    /** The PPT files in [pptDirectory], or empty when there is no usable folder. */
-    internal fun pptFiles(pptDirectory: String): List<File> =
-        listFiles(pptDirectory) { it.isFile && it.extension.lowercase() in PPT_EXTENSIONS }
+    /** The hymn folders in [imagesDirectory] (one per hymn, named by number), or empty when there
+     *  is no usable folder. A folder with no images is skipped — it carries no slides. */
+    internal fun hymnFolders(imagesDirectory: String): List<File> =
+        listFiles(imagesDirectory) { it.isDirectory && it.hasImages() }
+
+    /** Whether [this] folder holds at least one image a hymn's slides can be made from. */
+    private fun File.hasImages(): Boolean =
+        (listFiles { f -> f.isFile && f.extension.lowercase() in IMAGE_EXTENSIONS } ?: emptyArray()).any()
 
     /**
      * The mp3 matching [number] in [directory], or null when none does: the file whose name starts

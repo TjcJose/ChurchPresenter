@@ -158,6 +158,43 @@ class PresentationViewModelTest {
     }
 
     @Test
+    fun `an image folder loads its images as slides in file-name order, with no deck`() {
+        val folder = File(dir, "129").apply { mkdirs() }
+        listOf("01.png", "02.png", "10.jpg").forEach { File(folder, it).writeText("x") }
+        // A non-image file in the folder is ignored, the way it is in the Pictures tab.
+        File(folder, "readme.txt").writeText("x")
+
+        val vm = viewModel()
+        vm.loadImageFolder(folder)
+
+        assertEquals(folder.absolutePath, vm.selectedPresentation?.absolutePath)
+        assertEquals(0, vm.selectedSlideIndex)
+        assertEquals(listOf("01.png", "02.png", "10.jpg"), vm.slideFiles.map { it.name })
+        assertEquals(3, vm.totalSlides)
+        assertNull(vm.loadError)
+        assertFalse(vm.isLoading)
+        assertNull(vm.deck, "plain images have no deck, so the build-step paths are skipped")
+    }
+
+    @Test
+    fun `an image folder that is not there opens nothing`() {
+        val vm = viewModel()
+        vm.loadImageFolder(File(dir, "absent"))
+        assertNull(vm.selectedPresentation)
+        assertTrue(vm.presentations.isEmpty())
+    }
+
+    @Test
+    fun `re-selecting an image folder focuses the existing entry rather than duplicating it`() {
+        val folder = File(dir, "051").apply { mkdirs() }
+        File(folder, "a.png").writeText("x")
+        val vm = viewModel()
+        vm.loadImageFolder(folder)
+        vm.loadImageFolder(folder)
+        assertEquals(1, vm.presentations.size)
+    }
+
+    @Test
     fun `loading a path that is not there opens nothing`() {
         val vm = viewModel()
 

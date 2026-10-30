@@ -30,7 +30,7 @@ import org.churchpresenter.settings.AppSettings
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.browse_directory
 import org.churchpresenter.strings.generated.resources.hymn_piano_directory
-import org.churchpresenter.strings.generated.resources.hymn_ppt_directory
+import org.churchpresenter.strings.generated.resources.hymn_images_directory
 import org.churchpresenter.strings.generated.resources.hymn_settings
 import org.churchpresenter.strings.generated.resources.hymn_settings_hint
 import org.churchpresenter.strings.generated.resources.hymn_title_directory
@@ -52,8 +52,9 @@ private val HYMN_NAME_COLUMN_WIDTH = 168.dp
 private val HYMN_CONTROL_HEIGHT = 34.dp
 
 /**
- * The Hymn tab's folders: where its PPT files are, where the piano and vocal mp3s are, and where the
- * `HymnTitle.txt` that names the hymns is. Each is its own directory row, like the storage card's.
+ * The Hymn tab's folders: where its slide images are, where the piano and vocal mp3s are, and
+ * where the `HymnTitle.txt` that names the hymns is. Each is its own directory row, like the
+ * storage card's.
  */
 @Composable
 internal fun SystemHymnCard(
@@ -63,8 +64,8 @@ internal fun SystemHymnCard(
 ) {
     val hymn = settings.hymnSettings
     val directories = listOf(
-        HymnDirectory(stringResource(Res.string.hymn_ppt_directory), hymn.pptDirectory) { dir ->
-            onSettingsChange { s -> s.copy(hymnSettings = s.hymnSettings.copy(pptDirectory = dir)) }
+        HymnDirectory(stringResource(Res.string.hymn_images_directory), hymn.imagesDirectory) { dir ->
+            onSettingsChange { s -> s.copy(hymnSettings = s.hymnSettings.copy(imagesDirectory = dir)) }
         },
         HymnDirectory(stringResource(Res.string.hymn_piano_directory), hymn.pianoDirectory) { dir ->
             onSettingsChange { s -> s.copy(hymnSettings = s.hymnSettings.copy(pianoDirectory = dir)) }

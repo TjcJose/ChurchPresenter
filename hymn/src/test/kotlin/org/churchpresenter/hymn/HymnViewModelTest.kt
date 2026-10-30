@@ -48,18 +48,18 @@ class HymnViewModelTest {
     }
 
     private fun hymn(number: String, title: String = "", piano: String? = null, vocal: String? = null) =
-        HymnItem(number, title, File("$number.pptx"), piano?.let { File(it) }, vocal?.let { File(it) })
+        HymnItem(number, title, File(number), piano?.let { File(it) }, vocal?.let { File(it) })
 
     @Test
     fun configureScansAndRescansOnlyOnChange() {
         var scans = 0
         val viewModel = HymnViewModel(library = { scans++; listOf(hymn("001", "Alpha")) })
 
-        viewModel.configure(HymnSettings(pptDirectory = "a"))
+        viewModel.configure(HymnSettings(imagesDirectory = "a"))
         assertEquals(1, scans)
-        viewModel.configure(HymnSettings(pptDirectory = "a"))
+        viewModel.configure(HymnSettings(imagesDirectory = "a"))
         assertEquals(1, scans)
-        viewModel.configure(HymnSettings(pptDirectory = "b"))
+        viewModel.configure(HymnSettings(imagesDirectory = "b"))
         assertEquals(2, scans)
     }
 
@@ -67,7 +67,7 @@ class HymnViewModelTest {
     fun searchFiltersByNumberOrTitleCaseInsensitively() {
         val hymns = listOf(hymn("001", "Alpha"), hymn("129", "Bravo"), hymn("051(甲)", "Charlie"))
         val viewModel = HymnViewModel(library = { hymns })
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
         assertEquals(3, viewModel.hymns.size)
 
         viewModel.searchQuery = "12"
@@ -84,7 +84,7 @@ class HymnViewModelTest {
     fun selectionStaysThroughASearch() {
         val hymns = listOf(hymn("001"), hymn("129"))
         val viewModel = HymnViewModel(library = { hymns })
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
 
         viewModel.select(hymns[1])
         viewModel.searchQuery = "001"
@@ -95,7 +95,7 @@ class HymnViewModelTest {
     fun selectionDropsWhenTheHymnDisappearsOnRescan() {
         val hymns = mutableListOf(hymn("001"))
         val viewModel = HymnViewModel(library = { hymns.toList() })
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
         viewModel.select(hymns[0])
 
         hymns.clear()
@@ -104,10 +104,10 @@ class HymnViewModelTest {
     }
 
     @Test
-    fun hasFolderReflectsThePptDirectory() {
+    fun hasFolderReflectsTheImagesDirectory() {
         val viewModel = HymnViewModel(library = { emptyList() })
         assertFalse(viewModel.hasFolder)
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
         assertTrue(viewModel.hasFolder)
     }
 
@@ -118,7 +118,7 @@ class HymnViewModelTest {
             audio = HymnAudioPlayer { fake },
             library = { listOf(hymn("001", piano = "001 p.mp3", vocal = "001 v.mp3")) },
         )
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
         val only = viewModel.hymns.single()
 
         viewModel.playPiano(only)
@@ -137,7 +137,7 @@ class HymnViewModelTest {
             audio = HymnAudioPlayer { fake },
             library = { listOf(hymn("001", piano = "p.mp3")) },
         )
-        viewModel.configure(HymnSettings(pptDirectory = "x"))
+        viewModel.configure(HymnSettings(imagesDirectory = "x"))
         viewModel.playPiano(viewModel.hymns.single())
 
         viewModel.dispose()

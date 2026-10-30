@@ -35,8 +35,8 @@ class HymnViewModel(
 
     var selectedNumber: String? by mutableStateOf(null)
 
-    /** The PPT a Schedule row asked for, kept until the library has scanned it in. */
-    private var pendingPptPath: String? = null
+    /** The folder a Schedule row asked for, kept until the library has scanned it in. */
+    private var pendingFolderPath: String? = null
 
     /** The track loaded on the player, or null — read by the row buttons and the player bar. */
     var audioState by mutableStateOf<HymnAudioPlayer.Current?>(null)
@@ -81,8 +81,8 @@ class HymnViewModel(
     /** The hymn whose track is loaded — what the player bar titles itself with. */
     val audioHymn: HymnItem? get() = all.firstOrNull { it.number == audioState?.hymnNumber }
 
-    /** Whether the PPT folder is set at all — the tab's "set the folders" empty state. */
-    val hasFolder: Boolean get() = settings.pptDirectory.isNotBlank()
+    /** Whether the images folder is set at all — the tab's "set the folders" empty state. */
+    val hasFolder: Boolean get() = settings.imagesDirectory.isNotBlank()
 
     fun configure(newSettings: HymnSettings) {
         if (newSettings == settings) return
@@ -103,19 +103,20 @@ class HymnViewModel(
     }
 
     /**
-     * Selects the hymn whose PPT is [path] — the Schedule's way in, from a row the Hymn tab put
-     * there. Held until the library knows it, so it lands whether or not the scan has run yet.
+     * Selects the hymn whose image folder is [path] — the Schedule's way in, from a row the Hymn
+     * tab put there. Held until the library knows it, so it lands whether or not the scan has run
+     * yet.
      */
-    fun selectByPptPath(path: String) {
-        pendingPptPath = path
+    fun selectByFolderPath(path: String) {
+        pendingFolderPath = path
         resolvePendingSelection()
     }
 
     private fun resolvePendingSelection() {
-        val path = pendingPptPath ?: return
-        val match = all.firstOrNull { it.pptFile?.absolutePath == path } ?: return
+        val path = pendingFolderPath ?: return
+        val match = all.firstOrNull { it.imageFolder?.absolutePath == path } ?: return
         selectedNumber = match.number
-        pendingPptPath = null
+        pendingFolderPath = null
     }
 
     /** The folder VLC opens output on; the bar's presses reach it on the next start. */
