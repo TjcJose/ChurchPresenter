@@ -142,6 +142,18 @@ object Features {
      */
     const val INTERACTIVE = "interactive"
 
+    /**
+     * Shows an interactive page's `idlePlaylistId` or `idleUrl` while nobody is using it, and opens the
+     * page on a touch. Listed with [INTERACTIVE]; ChurchPresenter leaves both out for a player without it.
+     */
+    const val IDLE_SCREEN = "idle_screen"
+
+    /**
+     * Adds a web item's `pageCss` and runs its `pageScript` on its pages. A player without it shows the
+     * page as the site made it.
+     */
+    const val PAGE_CODE = "page_code"
+
     /** Answers [ServerMessage.Power]: the player may restart and shut down its machine. */
     const val POWER = "power"
 

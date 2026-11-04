@@ -103,6 +103,8 @@ internal fun MainDesktopScope.TabContentPane(tab: Tabs) {
 
 @Composable
 internal fun MainDesktopScope.PicturesTabPane() {
+    val targets = backgroundTargets(appSettings)
+    val background = SetAsBackgroundWiring(targets, appSettings, state)
     PicturesTab(
         modifier = Modifier.fillMaxSize(),
         hostWindow = hostWindow,
@@ -110,6 +112,12 @@ internal fun MainDesktopScope.PicturesTabPane() {
         onAddToSchedule = { folderPath, folderName, imageCount ->
             currentScheduleActions.addPicture(folderPath, folderName, imageCount)
         },
+        onAddPictureToSchedule = { image, folderImageCount ->
+            currentScheduleActions.addSinglePicture(image, folderImageCount)
+        },
+        backgroundTargets = targets,
+        onSetAsBackground = background::request,
+        isBackground = background::isBackground,
         onSavePreset = { folderPath, folderName, imageCount ->
             state.presetToSave = ScheduleItem.PictureItem(
                 UUID.randomUUID().toString(), folderPath, folderName, imageCount,
@@ -178,6 +186,8 @@ internal fun MainDesktopScope.PresentationTabPane() {
 
 @Composable
 internal fun MainDesktopScope.MediaTabPane() {
+    val targets = backgroundTargets(appSettings)
+    val background = SetAsBackgroundWiring(targets, appSettings, state)
     MediaTab(
         modifier = Modifier.fillMaxSize(),
         appSettings = appSettings,
@@ -185,6 +195,9 @@ internal fun MainDesktopScope.MediaTabPane() {
         onAddToSchedule = { mediaUrl, mediaTitle, mediaType, subtitleUrl ->
             currentScheduleActions.addMedia(mediaUrl, mediaTitle, mediaType, subtitleUrl)
         },
+        backgroundTargets = targets,
+        onSetAsBackground = background::request,
+        isBackground = background::isBackground,
         onSavePreset = { mediaUrl, mediaTitle, mediaType ->
             state.presetToSave = ScheduleItem.MediaItem(
                 UUID.randomUUID().toString(), mediaUrl, mediaTitle, mediaType,

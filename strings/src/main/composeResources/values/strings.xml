@@ -570,6 +570,10 @@
 
     <!-- Background Type Options -->
     <string name="background_default">Default</string>
+    <string name="set_as_background">Set as Background</string>
+    <string name="set_as_background_all_outputs">All outputs</string>
+    <string name="set_as_background_confirm">Set the %1$s background on %2$s to “%3$s”?</string>
+    <string name="set_as_background_set">Set</string>
     <string name="background_video_option">Video Loop</string>
     <string name="background_camera_option">Camera</string>
     <string name="background_transparent_option">Transparent</string>
@@ -674,6 +678,8 @@
     <string name="schedule_add_files_title">Add Files to Schedule</string>
     <string name="tooltip_toggle_displays">Toggle Presenter Displays</string>
     <string name="tooltip_preview_settings">Preview Settings</string>
+    <string name="tooltip_clear_text">Clear Text, Keep Background</string>
+    <string name="tooltip_restore_text">Show Text Again</string>
     <string name="preview_settings_show_labels">Show output labels</string>
     <string name="preview_settings_show_modes">Show display type</string>
     <string name="tooltip_settings">Settings</string>
@@ -1387,6 +1393,12 @@
     <string name="canvas_layout_portrait">Portrait %1$s</string>
     <string name="canvas_layout_landscape_short">Landscape</string>
     <string name="canvas_layout_portrait_short">Portrait</string>
+    <string name="canvas_layout_reset">Reset</string>
+    <string name="canvas_layout_reset_tooltip">Put this layer back where it starts in this layout</string>
+    <string name="canvas_fill_canvas">Fill canvas</string>
+    <string name="canvas_crop_position">Crop position</string>
+    <string name="canvas_crop_horizontal">Horizontal</string>
+    <string name="canvas_crop_vertical">Vertical</string>
     <string name="canvas_layer_placement_in">%1$s: %2$s</string>
     <string name="canvas_dual_layout_off_confirm">Remove the portrait/landscape layout? Its positions will be lost.</string>
     <string name="canvas_add_source">Add source</string>
@@ -2081,6 +2093,18 @@
     <string name="stt_not_connected">Not connected. Enter the STT server URL and click Connect.</string>
     <string name="stt_waiting_for_transcription">Waiting for transcription…</string>
     <string name="stt_translation_label">Translation</string>
+    <string name="stt_tab_shows">The STT tab shows</string>
+    <string name="stt_tab_shows_both">Transcription and translation</string>
+    <string name="stt_tab_shows_hint">These change only this tab's preview. Each output picks what it shows in its profile.</string>
+    <string name="stt_tab_section">STT tab</string>
+    <string name="stt_tab_lines">Lines kept (0 = all)</string>
+    <string name="stt_tab_font_size">Text size</string>
+    <string name="stt_tab_layout">Columns</string>
+    <string name="stt_tab_layout_side_by_side">Side by side</string>
+    <string name="stt_tab_layout_stacked">One under the other</string>
+    <string name="stt_tab_in_progress">Show the line still being spoken</string>
+    <string name="stt_tab_translation_in_progress">Show the translation still being made</string>
+    <string name="stt_tab_highlighting">Highlight words</string>
     <string name="stt_settings_dialog_title">STT Display Settings</string>
 
     <!-- CCLI Report -->
@@ -3980,6 +4004,16 @@
     <string name="signage_default_name">Screen %1$d</string>
     <string name="signage_online">Online</string>
     <string name="signage_offline">Offline · keeps playing what it has</string>
+    <string name="signage_looking">Looking for it…</string>
+    <string name="signage_last_seen">last seen %1$s</string>
+    <string name="signage_last_seen_at">last seen %1$s at %2$s</string>
+    <string name="signage_waiting_hint">Check the screen is on and on the same network as this computer.</string>
+    <string name="signage_age_now">just now</string>
+    <string name="signage_age_minutes">%1$d min ago</string>
+    <string name="signage_age_hours">%1$d h ago</string>
+    <string name="signage_age_days">%1$d days ago</string>
+    <string name="signage_preview_not_connected">Not connected</string>
+    <string name="signage_preview_unsupported">No preview on this player</string>
     <string name="signage_showing">Showing %1$s</string>
     <string name="signage_showing_idle">Showing the idle card</string>
     <string name="signage_plays">Plays</string>
@@ -4081,11 +4115,28 @@
     <string name="signage_link_older_player">Screens whose player is older than this feature, or that cannot show web pages, show their idle card for it.</string>
     <string name="signage_link_interactive">People use it on the touchscreen</string>
     <string name="signage_link_interactive_hint">For sign-ups and check-in. The page fills the screen with its own keyboard and stays up while its playlist plays. It starts over with nothing remembered, no names and no passwords, once nobody has touched it for a while.</string>
-    <string name="signage_link_idle_reset">Start over after no touch for (seconds)</string>
+    <string name="signage_link_idle_reset">Reset after (seconds)</string>
     <string name="signage_link_allowed_sites">Other sites it may open</string>
     <string name="signage_link_allowed_sites_hint">Its own site is always allowed. Add any others the form sends people to, such as a payment site, separated by commas.</string>
     <string name="signage_link_any_site">It may open any site</string>
     <string name="signage_link_any_site_hint">Leave on when you are not sure which sites the form needs. Off, the page can only go to its own site and the ones you list; what it shows inside itself, such as a card field, always loads.</string>
+    <string name="signage_link_idle_screen">When nobody uses it</string>
+    <string name="signage_link_idle_show_page">Show this page</string>
+    <string name="signage_link_idle_playlist">Play a playlist</string>
+    <string name="signage_link_idle_web">Show another web page</string>
+    <string name="signage_link_idle_playlist_pick">Playlist</string>
+    <string name="signage_link_idle_url">Web page to show</string>
+    <string name="signage_link_idle_prompt">Text on the screen</string>
+    <string name="signage_link_idle_prompt_default">Tap the screen to start</string>
+    <string name="signage_link_idle_prompt_hint">Written at the bottom so people know they can touch it. Leave empty for none.</string>
+    <string name="signage_link_idle_hint">A tap on the screen opens this page. After it starts over, the screen goes back to what it showed before.</string>
+    <string name="signage_link_idle_no_playlists">Add a folder, picture or video to the list first.</string>
+    <string name="signage_link_page_code">Change how the page looks</string>
+    <string name="signage_link_page_code_hint">Your own CSS and JavaScript, added to every page this link shows: to hide a site's menu or footer, say, or point its Home link back here.</string>
+    <string name="signage_link_page_css">CSS</string>
+    <string name="signage_link_page_script">JavaScript</string>
+    <string name="signage_link_page_script_hint">Runs on each page once it has loaded. A screen with an older player shows the page as its site made it.</string>
+    <string name="signage_link_page_code_idle">Not added to the page shown while nobody is using the screen.</string>
     <string name="signage_remove_playlist">Remove playlist</string>
     <string name="signage_remove_playlist_title">Remove %1$s?</string>
     <string name="signage_remove_playlist_text">Screens playing it go back to the first playlist. The file or page itself is not touched.</string>

@@ -133,6 +133,34 @@ data class PlaylistItem(
      * map) always loads.
      */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val allowedHosts: List<String> = emptyList(),
+    /**
+     * What an [interactive] page's screen shows while nobody is using it: the playlist with this id,
+     * played as any playlist is. A touch opens the page, and its idle reset comes back here. At most
+     * one of this and [idleUrl] is set; neither means the page itself stays up.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val idlePlaylistId: String? = null,
+    /**
+     * What an [interactive] page's screen shows while nobody is using it: this web page, in the same
+     * browser. The first tap on it opens the page (and does nothing on this one), and its idle reset
+     * comes back here.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val idleUrl: String? = null,
+    /**
+     * The line written over [idlePlaylistId] or [idleUrl] so people know the screen can be touched,
+     * such as "Tap to sign up"; nothing is written when null or blank.
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val idlePrompt: String? = null,
+    /**
+     * CSS added after a [MediaKind.WEB] page's own on every page it shows, to restyle a site (hide its
+     * menu, say); none when null or blank. On an [interactive] page it is not added to [idleUrl].
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val pageCss: String? = null,
+    /**
+     * JavaScript run on every page a [MediaKind.WEB] item shows, once the page's document is parsed
+     * (to point a site's Home link back at the page, say); none when null or blank. On an [interactive]
+     * page it is not run on [idleUrl].
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val pageScript: String? = null,
 ) {
     companion object {
         const val DEFAULT_TRANSITION_MS = 800L
