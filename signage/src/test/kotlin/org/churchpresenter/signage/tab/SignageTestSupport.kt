@@ -1,5 +1,9 @@
 package org.churchpresenter.signage.tab
 
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasAnyAncestor
@@ -23,6 +27,8 @@ import org.churchpresenter.signage.core.sha256Hex
 import org.churchpresenter.signage.hub.AgentUpdates
 import org.churchpresenter.signage.hub.PendingScreen
 import org.churchpresenter.signage.hub.SignageHub
+import org.churchpresenter.signage.smugmug.FakeAlbum
+import org.churchpresenter.signage.smugmug.FakeSmugMug
 import java.io.IOException
 import java.nio.file.Path
 import java.security.KeyPairGenerator
@@ -79,12 +85,22 @@ class SignageWorld(
     /** This ChurchPresenter's analytics setting, as the app hands it to the controller. */
     val diagnostics = MutableStateFlow(true)
 
+    /** The SmugMug API key the app hands the controller. */
+    val smugMugKey = MutableStateFlow("KEY")
+
+    /** The SmugMug account the slideshows read: never the real one. */
+    val smugMug = FakeSmugMug(
+        listOf(FakeAlbum("a1", "Harvest", listOf("p1", "p2", "p3")), FakeAlbum("a2", "Seminar", listOf("p4"))),
+    )
+
     val controller = SignageController(
         hub,
         signage,
         scope,
         pollMs = POLL_MS,
         diagnostics = diagnostics,
+        smugMugApiKey = smugMugKey,
+        smugMugHttp = smugMug,
     )
 
     /**
@@ -193,3 +209,18 @@ class SignedRelease(val version: String = "26.0.9") {
 /** The text box inside the field tagged [tag]: a settings field draws its caption apart from it. */
 @OptIn(ExperimentalTestApi::class)
 internal fun ComposeUiTest.field(tag: String) = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
+
+/**
+ * The playlist panel with the header's Help and Add a playlist beside it, as the tab draws them, for a
+ * test that composes the panel without the whole tab.
+ */
+@Composable
+internal fun PanelWithMenu(state: SignageFolderState, actions: FolderActions) {
+    Column {
+        Row {
+            SignageHelpButton()
+            AddPlaylistMenu(state, actions)
+        }
+        SignageFolderPanel(state, actions, Modifier)
+    }
+}

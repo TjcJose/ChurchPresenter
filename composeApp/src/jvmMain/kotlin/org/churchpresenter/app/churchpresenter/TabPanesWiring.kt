@@ -96,6 +96,8 @@ internal fun MainDesktopScope.TabContentPane(tab: Tabs) {
                 serverRunning = input.serverRunning,
                 onTurnOnServer = input.onTurnOnServer,
                 modifier = Modifier.fillMaxSize(),
+                smugMugApiKey = input.smugMugApiKey,
+                onSmugMugApiKey = input.onSmugMugApiKey,
             )
         }
     }

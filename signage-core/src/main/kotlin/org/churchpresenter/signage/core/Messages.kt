@@ -154,6 +154,19 @@ object Features {
      */
     const val PAGE_CODE = "page_code"
 
+    /**
+     * An interactive item reloads while nobody uses it: its page every `refreshMs` until someone
+     * touches it, its idle page (`idleUrl`) every `idleRefreshMs` while that shows. A player without it
+     * leaves both as they first loaded until the page starts over.
+     */
+    const val TOUCH_RELOAD = "touch_reload"
+
+    /**
+     * Shows `screen.message` over whatever plays, as a band across the top or full screen, until it
+     * runs out. A player without it is not sent one.
+     */
+    const val MESSAGE = "message"
+
     /** Answers [ServerMessage.Power]: the player may restart and shut down its machine. */
     const val POWER = "power"
 

@@ -62,11 +62,36 @@ data class ScreenSettings(
      * one has none.
      */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val kioskGesturePlaylistId: String? = null,
+    /**
+     * A message written over whatever the screen shows, from ChurchPresenter's Signage tab, until it
+     * ends or is cleared; none when null. Only on a player with [Features.MESSAGE].
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val message: ScreenMessage? = null,
 ) {
     companion object {
         const val DEFAULT_WIDTH = 1920
         const val DEFAULT_HEIGHT = 1080
     }
+}
+
+/**
+ * A message for the screen: [text] in a band across the top over what plays, or [fullScreen] in place
+ * of it, until [untilMs] (epoch milliseconds) or, when that is null, until it is cleared. Over a touch
+ * page a full-screen one takes the touches; a band lets them through to the page unless [blockTouch].
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ScreenMessage(
+    val text: String,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val fullScreen: Boolean = false,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val untilMs: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val blockTouch: Boolean = false,
+) {
+    /** Whether it keeps people from using a touch page under it: a full-screen one always does. */
+    val blocksTouch: Boolean get() = fullScreen || blockTouch
+
+    /** Whether it still shows at [nowMs]: it has words, and has not run out. */
+    fun showsAt(nowMs: Long): Boolean = text.isNotBlank() && (untilMs == null || nowMs < untilMs)
 }
 
 @Serializable
@@ -108,7 +133,10 @@ data class PlaylistItem(
     val transitionMs: Long = DEFAULT_TRANSITION_MS,
     /** What a [MediaKind.STREAM] or [MediaKind.WEB] item opens. */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val url: String? = null,
-    /** How often a [MediaKind.WEB] page reloads; never when null. */
+    /**
+     * How often a [MediaKind.WEB] page reloads; never when null. An [interactive] page reloads only
+     * while nobody is using it, and only on a player with [Features.TOUCH_RELOAD].
+     */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val refreshMs: Long? = null,
     /**
      * At most how many frames a second a [MediaKind.WEB] page is drawn at; [DEFAULT_WEB_FPS] when
@@ -145,6 +173,11 @@ data class PlaylistItem(
      * comes back here.
      */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val idleUrl: String? = null,
+    /**
+     * How often [idleUrl] reloads while it is showing, so a slideshow picks up new pictures; never when
+     * null, and never while someone uses the page. Only on a player with [Features.TOUCH_RELOAD].
+     */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val idleRefreshMs: Long? = null,
     /**
      * The line written over [idlePlaylistId] or [idleUrl] so people know the screen can be touched,
      * such as "Tap to sign up"; nothing is written when null or blank.

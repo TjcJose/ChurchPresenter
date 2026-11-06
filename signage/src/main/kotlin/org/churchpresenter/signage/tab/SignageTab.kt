@@ -1,8 +1,6 @@
 package org.churchpresenter.signage.tab
 
-import org.churchpresenter.theme.components.RaisedButton
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -32,27 +30,46 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import org.churchpresenter.strings.generated.resources.signage_no_screens
+import org.churchpresenter.strings.generated.resources.signage_server_off_title
+import org.churchpresenter.strings.generated.resources.signage_summary
+import org.churchpresenter.strings.generated.resources.tab_signage
+import org.churchpresenter.theme.components.KeyButton
+import java.io.IOException
+import java.nio.file.Path
+import java.time.Clock
 import kotlinx.coroutines.delay
+import org.churchpresenter.sharedui.filechooser.FileChooser
+import org.churchpresenter.sharedui.utils.UrlOpener
+import org.churchpresenter.signage.core.Features
 import org.churchpresenter.signage.core.Orientation
 import org.churchpresenter.signage.core.PowerAction
 import org.churchpresenter.signage.core.ScheduleBlock
 import org.churchpresenter.signage.hub.LatestRelease
 import org.churchpresenter.signage.hub.PairedScreen
 import org.churchpresenter.signage.hub.ScreenLink
-import org.churchpresenter.sharedui.composables.ZoneLabel
-import org.churchpresenter.sharedui.composables.bibleListCard
+import org.churchpresenter.signage.smugmug.SmugMugSite
 import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.signage_default_name
-import org.churchpresenter.strings.generated.resources.signage_no_screens
+import org.churchpresenter.strings.generated.resources.signage_message_button
 import org.churchpresenter.strings.generated.resources.signage_no_screens_hint
 import org.churchpresenter.strings.generated.resources.signage_screens
 import org.churchpresenter.strings.generated.resources.signage_server_off
 import org.churchpresenter.strings.generated.resources.signage_turn_on_server
+import org.churchpresenter.theme.components.RaisedButton
 import org.churchpresenter.theme.semantic
 import org.jetbrains.compose.resources.stringResource
-import org.churchpresenter.sharedui.filechooser.FileChooser
-import org.churchpresenter.sharedui.utils.UrlOpener
-import java.nio.file.Path
 
 /**
  * The Signage tab: the lobby screens this ChurchPresenter owns, the ones asking to
@@ -63,6 +80,8 @@ import java.nio.file.Path
  *   through it.
  * @param onTurnOnServer turns the companion server on.
  * @param desktop the file and folder chooser, file manager and Trash the tab uses.
+ * @param smugMugApiKey the SmugMug API key the slideshows read with, this computer's own.
+ * @param onSmugMugApiKey saves a SmugMug API key typed into a slideshow's dialog.
  */
 @Composable
 fun SignageTab(
@@ -71,6 +90,8 @@ fun SignageTab(
     onTurnOnServer: () -> Unit,
     modifier: Modifier = Modifier,
     desktop: SignageDesktop = remember { SignageDesktop() },
+    smugMugApiKey: String = "",
+    onSmugMugApiKey: (String) -> Unit = {},
 ) {
     val folder by controller.state.collectAsState()
     val screens by controller.screens.collectAsState()
@@ -79,25 +100,9 @@ fun SignageTab(
     // Read so the cards offer an update once a newer release is found.
     val latest by controller.controls.latestRelease.collectAsState()
     var largePreview by remember { mutableStateOf<String?>(null) }
+    var writingMessage by remember { mutableStateOf(false) }
     // One set for the tab's life, so a card whose screen did not change is skipped on recomposition.
-    val actions = remember(controller) {
-        ScreenActions(
-            onPlay = controller::play,
-            onIdentify = { controller.controls.identify(it) },
-            onRename = controller.controls::rename,
-            onRemove = controller::remove,
-            onWipe = controller::wipe,
-            onUpdate = controller.controls::update,
-            onPreviewOpen = { largePreview = it },
-            onTestWebPages = { controller.controls.testWebPages(it) },
-            onSchedule = controller.plans::setSchedule,
-            onOrientation = controller.plans::setOrientation,
-            onKioskPin = controller.plans::setKioskPin,
-            onGesture = controller.plans::setGesture,
-            onPower = { id, action -> controller.power.run(id, action) },
-            onTv = { id, on -> controller.power.tv(id, on) },
-        )
-    }
+    val actions = remember(controller) { screenActions(controller) { largePreview = it } }
     // Only while the tab is showing: look for a player update now and daily, and ask for pictures.
     LaunchedEffect(controller) {
         while (true) {
@@ -111,51 +116,168 @@ fun SignageTab(
             delay(PREVIEW_EVERY_MS)
         }
     }
+    val folderActions = folderActions(controller, desktop, smugMugApiKey, onSmugMugApiKey)
+    val messageTargets = targets(screens, links, controller)
     // No Surface sits under the tab, so text that names no colour would otherwise be drawn black.
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        Column(modifier = modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 8.dp)) {
-            if (!serverRunning) ServerOffBanner(onTurnOnServer)
-            val lookingSinceMs = remember(serverRunning) { System.currentTimeMillis() }
-            Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val defaultName = stringResource(Res.string.signage_default_name, screens.size + 1)
-                ScreensColumn(
-                    screens = screens.map { screen ->
-                        val link = links[screen.id]
-                        val offer = latest?.let { controller.controls.offerFor(screen, link) }
-                        ScreenRowState(screen, link, folder, offer, lookingSinceMs)
-                    },
-                    pendingCards = {
-                        pending.forEach { player ->
-                            PendingScreenCard(
-                                player = player,
-                                onApprove = { controller.controls.approve(player.playerId, defaultName) },
-                                onDecline = { controller.controls.reject(player.playerId) },
-                            )
-                        }
-                    },
-                    actions = actions,
-                    modifier = Modifier.weight(SCREENS_WEIGHT).fillMaxSize(),
-                )
-                SignageFolderPanel(
-                    state = folder,
-                    actions = FolderActions(
-                        desktop = desktop,
-                        onAddLink = controller.added::addLink,
-                        onAddFile = controller.added::addFile,
-                        onAddFolder = controller.added::addFolder,
-                        onRemove = controller.added::remove,
-                        onAddRotation = controller.added::addRotation,
-                        onEditRotation = controller.added::updateRotation,
-                        onEditLink = controller.added::updateLink,
-                        onEditFile = controller.added::updateFile,
-                        onEditFolder = controller.added::updateFolder,
-                        onLocate = controller.added::locate,
-                    ),
-                    modifier = Modifier.weight(1f).fillMaxSize(),
-                )
+        Column(modifier = modifier.fillMaxSize()) {
+            SignageHeader(
+                summary = stringResource(
+                    Res.string.signage_summary,
+                    screens.count { links[it.id] != null },
+                    screens.size,
+                    folder.playlists.size,
+                ),
+                canMessage = messageTargets.isNotEmpty(),
+                onMessage = { writingMessage = true },
+                addMenu = { AddPlaylistMenu(folder, folderActions) },
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Column(
+                modifier = Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                if (!serverRunning) ServerOffBanner(onTurnOnServer)
+                val message = folder.settings.message
+                if (message != null && message.showsAt(System.currentTimeMillis())) {
+                    ActiveMessageCard(
+                        message,
+                        messageTargets,
+                        onEdit = { writingMessage = true },
+                        onClear = { controller.setMessage(null) },
+                    )
+                }
+                val lookingSinceMs = remember(serverRunning) { System.currentTimeMillis() }
+                Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val defaultName = stringResource(Res.string.signage_default_name, screens.size + 1)
+                    ScreensColumn(
+                        screens = screens.map { screen ->
+                            val link = links[screen.id]
+                            val offer = latest?.let { controller.controls.offerFor(screen, link) }
+                            ScreenRowState(screen, link, folder, offer, lookingSinceMs)
+                        },
+                        pendingCards = {
+                            pending.forEach { player ->
+                                PendingScreenCard(
+                                    player = player,
+                                    onApprove = { controller.controls.approve(player.playerId, defaultName) },
+                                    onDecline = { controller.controls.reject(player.playerId) },
+                                )
+                            }
+                        },
+                        actions = actions,
+                        modifier = Modifier.weight(SCREENS_WEIGHT).fillMaxSize(),
+                    )
+                    SignageFolderPanel(
+                        state = folder,
+                        actions = folderActions,
+                        modifier = Modifier.weight(1f).fillMaxSize(),
+                    )
+                }
             }
         }
+        if (writingMessage) {
+            ScreenMessageDialog(
+                current = folder.settings.message?.takeIf { it.showsAt(System.currentTimeMillis()) },
+                screens = messageTargets,
+                onShow = controller::setMessage,
+                onDismiss = { writingMessage = false },
+            )
+        }
     }
+}
+
+/** The tab's one header: what it is, how the screens stand, and every action that is not a row's own. */
+@Composable
+private fun SignageHeader(
+    summary: String,
+    canMessage: Boolean,
+    onMessage: () -> Unit,
+    addMenu: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        KindTile(TileKind.SCREEN, size = 38.dp)
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(Res.string.tab_signage),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        SignageHelpButton()
+        KeyButton(onClick = onMessage, enabled = canMessage) {
+            Icon(Icons.Filled.Campaign, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(Res.string.signage_message_button))
+        }
+        addMenu()
+    }
+}
+
+/** What a screen card's controls do, through [controller]; [onPreviewOpen] says which picture is open big. */
+private fun screenActions(controller: SignageController, onPreviewOpen: (String?) -> Unit) = ScreenActions(
+        onPlay = controller::play,
+        onIdentify = { controller.controls.identify(it) },
+        onRename = controller.controls::rename,
+        onRemove = controller::remove,
+        onWipe = controller::wipe,
+        onUpdate = controller.controls::update,
+        onPreviewOpen = onPreviewOpen,
+        onTestWebPages = { controller.controls.testWebPages(it) },
+        onSchedule = controller.plans::setSchedule,
+        onOrientation = controller.plans::setOrientation,
+        onKioskPin = controller.plans::setKioskPin,
+        onGesture = controller.plans::setGesture,
+        onPower = { id, action -> controller.power.run(id, action) },
+        onTv = { id, on -> controller.power.tv(id, on) },
+    )
+
+/** What the playlist panel and the Add menu do, through [controller]. */
+private fun folderActions(
+    controller: SignageController,
+    desktop: SignageDesktop,
+    smugMugApiKey: String,
+    onSmugMugApiKey: (String) -> Unit,
+) = FolderActions(
+    desktop = desktop,
+    onAddLink = controller.added::addLink,
+    onAddFile = controller.added::addFile,
+    onAddFolder = controller.added::addFolder,
+    onRemove = controller.added::remove,
+    onAddRotation = controller.added::addRotation,
+    onEditRotation = controller.added::updateRotation,
+    onEditLink = controller.added::updateLink,
+    onEditFile = controller.added::updateFile,
+    onEditFolder = controller.added::updateFolder,
+    onLocate = controller.added::locate,
+    onSaveSmugMug = controller.slideshows::save,
+    onPickNewPhotos = controller.slideshows::pickNewPhotos,
+    smugMug = SmugMugAccess(smugMugApiKey, onSmugMugApiKey, controller.slideshows::lookUp),
+)
+
+/** A paired screen a message can go to; [canShow] is false when its player is too old to show one. */
+data class MessageTarget(val id: String, val name: String, val canShow: Boolean)
+
+/** Every paired screen as a message target, and whether its player can show one. */
+private fun targets(
+    screens: List<PairedScreen>,
+    links: Map<String, ScreenLink>,
+    controller: SignageController,
+): List<MessageTarget> = screens.map { screen ->
+    val features = links[screen.id]?.features?.takeIf { it.isNotEmpty() } ?: controller.features.of(screen.id)
+    // A screen never heard from yet is offered: it may well be new enough.
+    MessageTarget(screen.id, screen.name, canShow = features.isEmpty() || Features.MESSAGE in features)
 }
 
 /** One screen as its card shows it: what it is, its connection, and the playlists it can play. */
@@ -184,6 +306,24 @@ internal class FolderActions(
     val onEditFolder: (id: String, name: String, pictureSeconds: Int) -> Unit = { _, _, _ -> },
     /** Where a playlist's copy is on this computer, to open it in the file manager. */
     val onLocate: (id: String) -> Path? = { null },
+    /** Adds a SmugMug slideshow, or saves one edited under its id. */
+    val onSaveSmugMug: (SmugMugPlaylist) -> Unit = {},
+    /** Has a SmugMug slideshow pick a new set of photos now. */
+    val onPickNewPhotos: (id: String) -> Unit = {},
+    val smugMug: SmugMugAccess = SmugMugAccess(),
+    /** What a slideshow's "picked at" time is read against: this computer's clock and zone. */
+    val clock: Clock = Clock.systemDefaultZone(),
+)
+
+/**
+ * What the SmugMug dialog needs of the app: this computer's API key and where to save it, a lookup of
+ * a site's account, and a way to open SmugMug's page for a key.
+ */
+internal class SmugMugAccess(
+    val apiKey: String = "",
+    val onApiKey: (String) -> Unit = {},
+    val lookUp: suspend (site: String, key: String) -> SmugMugSite = { _, _ -> throw IOException("No lookup") },
+    val openUrl: (String) -> Unit = { UrlOpener.open(it) },
 )
 
 /**
@@ -231,10 +371,10 @@ private fun ScreensColumn(
     actions: ScreenActions,
     modifier: Modifier,
 ) {
-    Column(modifier = modifier) {
-        ZoneLabel(stringResource(Res.string.signage_screens), modifier = Modifier.padding(start = 8.dp, bottom = 6.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-            item { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { pendingCards() } }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        CountedHeading(stringResource(Res.string.signage_screens), screens.size.takeIf { it > 0 })
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+            item { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { pendingCards() } }
             items(screens, key = { it.screen.id }) { row -> ScreenCard(row, actions) }
             if (screens.isEmpty()) item { NoScreens() }
         }
@@ -243,45 +383,60 @@ private fun ScreensColumn(
 
 @Composable
 private fun NoScreens() {
+    val shape = RoundedCornerShape(14.dp)
     Column(
-        modifier = Modifier.fillMaxWidth().bibleListCard().padding(24.dp),
+        modifier = Modifier.fillMaxWidth()
+            .dashedBorder(MaterialTheme.colorScheme.outlineVariant, shape)
+            .padding(horizontal = 28.dp, vertical = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            Icons.Filled.Tv,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(40.dp),
+        KindTile(TileKind.SCREEN, size = 56.dp)
+        Text(
+            stringResource(Res.string.signage_no_screens),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 6.dp),
         )
-        Text(stringResource(Res.string.signage_no_screens), style = MaterialTheme.typography.titleMedium)
         Text(
             stringResource(Res.string.signage_no_screens_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 420.dp),
         )
     }
+}
+
+/** A dashed edge round an empty place: something goes here, nothing is there yet. */
+private fun Modifier.dashedBorder(color: Color, shape: Shape): Modifier = drawBehind {
+    val outline = shape.createOutline(size, layoutDirection, this)
+    drawOutline(
+        outline,
+        color = color,
+        style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(DASH, DASH))),
+    )
 }
 
 @Composable
 private fun ServerOffBanner(onTurnOnServer: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).bibleListCard().padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    TintedBanner(
+        icon = Icons.Filled.CloudOff,
+        color = MaterialTheme.semantic.warning,
+        title = {
+            Text(
+                stringResource(Res.string.signage_server_off_title),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        hint = stringResource(Res.string.signage_server_off),
     ) {
-        Icon(Icons.Filled.CloudOff, contentDescription = null, tint = MaterialTheme.semantic.warning)
-        Spacer(Modifier.width(12.dp))
-        Text(
-            stringResource(Res.string.signage_server_off),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(12.dp))
-        Box { RaisedButton(onClick = onTurnOnServer) { Text(stringResource(Res.string.signage_turn_on_server)) } }
+        RaisedButton(onClick = onTurnOnServer) { Text(stringResource(Res.string.signage_turn_on_server)) }
     }
 }
 
+private const val DASH = 10f
 private const val SCREENS_WEIGHT = 1.4f
 private const val PREVIEW_EVERY_MS = 5_000L
 private const val UPDATE_CHECK_MS = 24 * 60 * 60 * 1000L

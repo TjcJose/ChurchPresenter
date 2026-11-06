@@ -2,6 +2,7 @@
 
 package org.churchpresenter.signage.tab
 
+import org.churchpresenter.signage.smugmug.SmugMugProgress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,13 @@ import org.churchpresenter.signage.hub.PairedScreen
 import org.churchpresenter.signage.hub.ScreenLink
 import kotlin.io.path.Path
 import kotlin.test.Test
+import org.churchpresenter.signage.smugmug.SmugMugAlbum
+import org.churchpresenter.signage.smugmug.SmugMugSite
+import org.churchpresenter.signage.smugmug.SmugMugState
+import org.churchpresenter.signage.smugmug.SmugMugSync
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 /**
  * Playlists added by hand and the web page test, in both themes: the list with every kind and a
@@ -69,11 +77,65 @@ class SignageLinksScreenshotTest {
     @Test
     fun `every kind of playlist`() = captureComponent(SECTION, "playlists") { Panel() }
 
+    /** A slideshow picked this afternoon, one picking now, one whose pick failed, and one with no key. */
+    @Test
+    fun `smugmug slideshows`() = captureComponent(SECTION, "smugmug_rows") {
+        val rows = listOf("Lobby photos", "Kids wing", "Youth", "Office")
+            .mapIndexed { i, name ->
+                PlaylistSummary(
+                    "smugmug:$i", name, pictures = 50, kind = SourceKind.SMUGMUG, detail = SMUGMUG_SITE, seconds = 8,
+                )
+            }
+        val state = SignageFolderState(
+            playlists = rows,
+            ready = true,
+            slideshows = mapOf(
+                "smugmug:0" to SmugMugState(pickedAtMs = PICKED_AT, photos = 50),
+                "smugmug:1" to SmugMugState(pickedAtMs = PICKED_AT, photos = 50),
+                "smugmug:2" to SmugMugState(pickedAtMs = PICKED_AT, photos = 50, error = "SmugMug answered 503"),
+                "smugmug:3" to SmugMugState(error = SmugMugSync.NO_KEY),
+            ),
+            picking = setOf("smugmug:1"),
+            pickProgress = mapOf("smugmug:1" to SmugMugProgress(SmugMugProgress.Stage.DOWNLOADING, 23, 50)),
+        )
+        Box(Modifier.size(PANEL_WIDTH.dp, SLIDESHOW_PANEL_HEIGHT.dp)) {
+            SignageFolderPanel(state, FolderActions(FakeDesktop().desktop, clock = PINNED_CLOCK), Modifier)
+        }
+    }
+
+    /** Opened to edit: the site looked up straight away, one gallery left out. */
+    @Test
+    fun `a smugmug slideshow's galleries`() = captureComponent(SECTION, "smugmug_dialog", rootIndex = 1) {
+        SmugMugDialog(
+            initial = SmugMugPlaylist.create("Lobby photos").copy(site = SMUGMUG_SITE, excludedAlbumKeys = setOf("a3")),
+            apiKey = "0123456789abcdef",
+            onApiKey = {},
+            lookUp = { _, _ ->
+                SmugMugSite(
+                    "Grace",
+                    listOf(
+                        SmugMugAlbum("a1", "Fall harvest", "Public", imageCount = 299),
+                        SmugMugAlbum("a2", "Seminar 2026", "Public", imageCount = 202),
+                        SmugMugAlbum("a3", "Site images", "Public", imageCount = 12),
+                        SmugMugAlbum("a4", "Baptism", "Public", imageCount = 86),
+                    ),
+                )
+            },
+            onSave = {},
+            onDismiss = {},
+            openUrl = {},
+        )
+    }
+
     @Test
     fun `the add menu`() = captureComponent(SECTION, "add_menu", rootIndex = 1, drive = {
-        onNodeWithText("Add").performClick()
+        onNodeWithText("Add a playlist").performClick()
         waitForIdle()
-    }) { Panel() }
+    }) {
+        Box(Modifier.size(PANEL_WIDTH.dp, PANEL_HEIGHT.dp)) {
+            PanelWithMenu(folder, FolderActions(FakeDesktop().desktop))
+        }
+    }
 
     @Test
     fun `a web page link moving smoothly`() = captureComponent(SECTION, "link_web", rootIndex = 1, drive = {
@@ -93,6 +155,45 @@ class SignageLinksScreenshotTest {
             ),
         )
     }
+
+    /** A photo slideshow while nobody uses the screen, each page with its own reload time. */
+    @Test
+    fun `a touch page over a slideshow that reloads`() =
+        captureComponent(SECTION, "link_touch_idle_page", rootIndex = 1) {
+            LinkDialog(
+                onAdd = {},
+                onDismiss = {},
+                initial = LinkPlaylist(
+                    "link:3", "Photos", "https://photos.example.org", LinkKind.WEB, refreshMinutes = 60,
+                    interactive = InteractiveLink(
+                        90, listOf(InteractiveLink.ANY_HOST),
+                        idleUrl = "https://photos.example.org/slideshow", idlePrompt = "Tap the screen to start",
+                        idleRefreshMinutes = 30,
+                    ),
+                ),
+            )
+        }
+
+    /** A playlist while nobody uses the screen: what to show first, then which playlist. */
+    @Test
+    fun `a touch page over a playlist`() =
+        captureComponent(SECTION, "link_touch_idle_playlist", rootIndex = 1) {
+            LinkDialog(
+                onAdd = {},
+                onDismiss = {},
+                initial = LinkPlaylist(
+                    "link:4", "Photos", "https://photos.example.org", LinkKind.WEB,
+                    interactive = InteractiveLink(
+                        90, listOf(InteractiveLink.ANY_HOST),
+                        idlePlaylistId = "folder:Events", idlePrompt = "Tap the screen to start",
+                    ),
+                ),
+                idlePlaylists = listOf(
+                    PlaylistSummary("folder:Events", "Events", 4, 0, detail = "Folders/Events", seconds = 15),
+                    PlaylistSummary("file:2", "Lobby loop", kind = SourceKind.VIDEO, detail = "lobby-loop.mp4"),
+                ),
+            )
+        }
 
     /** Scrolled down to the code, which fills the end of the dialog. */
     @Test
@@ -177,6 +278,13 @@ class SignageLinksScreenshotTest {
     }
 
     private companion object {
+        const val SMUGMUG_SITE = "https://photos.example.org"
+        const val SLIDESHOW_PANEL_HEIGHT = 330
+
+        /** 2:30 in the afternoon, the day the clock is pinned to. */
+        val PINNED_CLOCK: Clock = Clock.fixed(Instant.parse("2026-11-04T18:00:00Z"), ZoneOffset.UTC)
+        val PICKED_AT = Instant.parse("2026-11-04T14:30:00Z").toEpochMilli()
+
         const val SECTION = "signage-links"
         const val WEATHER = "https://weather.example.org/city/springfield"
         const val LIVE = "https://www.youtube.com/@gracechurch/live"
