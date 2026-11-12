@@ -4,6 +4,7 @@ import org.churchpresenter.web.offscreen.OffscreenWebView
 import org.churchpresenter.presenter.LocalBandOutgoing
 import org.churchpresenter.presenter.LocalBandSongLineIndex
 import org.churchpresenter.presenter.LocalLottieBandClock
+import org.churchpresenter.presenter.LocalTitleSlideClock
 import org.churchpresenter.presenter.LowerThirdLayout
 import org.churchpresenter.presenter.showsContentFor
 import androidx.compose.animation.Crossfade
@@ -40,7 +41,10 @@ import org.churchpresenter.strings.generated.resources.Res
 import org.churchpresenter.strings.generated.resources.fill_badge
 import org.churchpresenter.strings.generated.resources.live_preview_nothing
 import org.churchpresenter.strings.generated.resources.lock_screen_to_tab
+import org.churchpresenter.strings.generated.resources.screen_blank_badge
+import org.churchpresenter.strings.generated.resources.screen_held_badge
 import org.churchpresenter.strings.generated.resources.screen_locked_badge
+import org.churchpresenter.liveoutput.ScreenHold
 import org.churchpresenter.strings.generated.resources.unlock_screen
 import org.churchpresenter.liveoutput.StageMonitorScreen
 import org.churchpresenter.settings.offersTranspose
@@ -144,8 +148,10 @@ internal fun PreviewMode(
  * Compose, so this mirrors the output's instead.
  */
 @Composable
-internal fun PreviewWebsiteMirror(presenterManager: PresenterManager) {
-    val page = presenterManager.offscreenPage.value
+internal fun PreviewWebsiteMirror(presenterManager: PresenterManager, profile: OutputProfile) {
+    // The tile's own layout's page, as its screen draws it; the other while that one is still opening.
+    val page = presenterManager.offscreenPageFor(profile.webPageView.isMobile(presenterManager.webMobile.value))
+        ?: presenterManager.offscreenPage.value
     val snapshot = presenterManager.webSnapshot.value
     if (page != null) {
         OffscreenWebView(page, Modifier.fillMaxSize(), small = true)
@@ -173,6 +179,49 @@ internal fun PreviewWebsiteMirror(presenterManager: PresenterManager) {
 }
 
 /**
+ * The corner control of an output's tile: the hold menu when the tile has one, otherwise the toggle
+ * that locks the output to [effectiveMode] or, when it is [lockedMode]d, lets it go.
+ */
+@Composable
+private fun BoxScope.LockControl(
+    lockedMode: Presenting?,
+    effectiveMode: Presenting,
+    onToggleLock: (Presenting?) -> Unit,
+    holdMenu: ScreenHoldMenu?,
+) {
+    if (holdMenu != null) {
+        ScreenHoldMenuButton(
+            menu = holdMenu,
+            lockedMode = lockedMode,
+            effectiveMode = effectiveMode,
+            onToggleLock = onToggleLock,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(2.dp),
+        )
+        return
+    }
+    KeyIconButton(
+        onClick = { onToggleLock(if (lockedMode != null) null else effectiveMode) },
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(2.dp)
+            .size(24.dp),
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = if (lockedMode != null) Color(LOCK_BADGE_COLOR) else Color.White.copy(alpha = 0.5f)
+        )
+    ) {
+        Icon(
+            imageVector = if (lockedMode != null) Icons.Filled.Lock else Icons.Filled.LockOpen,
+            contentDescription = if (lockedMode != null) {
+                stringResource(Res.string.unlock_screen)
+            } else {
+                stringResource(Res.string.lock_screen_to_tab)
+            },
+            modifier = Modifier.size(13.dp)
+        )
+    }
+}
+
+/**
  * The badges over a preview: FILL with a key output, LOCKED and the lock toggle, the transpose,
  * the output's [label] when shown, and the equalizer while media is [mediaAudible].
  */
@@ -192,6 +241,8 @@ internal fun BoxScope.PreviewBadges(
     lockable: Boolean = true,
     /** Room left at the bottom edge for the profile pill, which the bottom-left badges stack above. */
     bottomInset: Dp = 0.dp,
+    /** The hold menu that stands in for the lock toggle on a screen, while the feature shows. */
+    holdMenu: ScreenHoldMenu? = null,
 ) {
     // FILL badge when key output is configured
     if (rawAssignment.hasKeyOutput) {
@@ -211,9 +262,14 @@ internal fun BoxScope.PreviewBadges(
     // their own content dynamically and are never locked to a single tab.
     val lockedMode = locks[screenIndex]
     if (lockable && profile.displayMode != Constants.DISPLAY_MODE_STAGE_MONITOR) {
-        if (lockedMode != null) {
+        val badge = when (holdMenu?.hold) {
+            ScreenHold.HOLD -> Res.string.screen_held_badge
+            ScreenHold.BLANK -> Res.string.screen_blank_badge
+            null -> if (lockedMode != null) Res.string.screen_locked_badge else null
+        }
+        if (badge != null) {
             Text(
-                text = stringResource(Res.string.screen_locked_badge),
+                text = stringResource(badge),
                 color = Color.White,
                 fontSize = 9.sp,
                 modifier = Modifier
@@ -224,33 +280,7 @@ internal fun BoxScope.PreviewBadges(
             )
         }
 
-        // Lock toggle button — bottom-right corner
-        KeyIconButton(
-            onClick = {
-                if (lockedMode != null) {
-                    onToggleLock(null)
-                } else {
-                    onToggleLock(effectiveMode)
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(2.dp)
-                .size(24.dp),
-            colors = IconButtonDefaults.iconButtonColors(
-                contentColor = if (lockedMode != null) Color(LOCK_BADGE_COLOR) else Color.White.copy(alpha = 0.5f)
-            )
-        ) {
-            Icon(
-                imageVector = if (lockedMode != null) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                contentDescription = if (lockedMode != null) {
-                    stringResource(Res.string.unlock_screen)
-                } else {
-                    stringResource(Res.string.lock_screen_to_tab)
-                },
-                modifier = Modifier.size(13.dp)
-            )
-        }
+        LockControl(lockedMode, effectiveMode, onToggleLock, holdMenu)
     }
 
     // The musicians' transpose, on an output whose profile offers it. A Stage Monitor has no
@@ -330,6 +360,7 @@ internal fun PreviewModeLayers(
     val modeContent: @Composable (Presenting) -> Unit = { mode ->
         CompositionLocalProvider(
             LocalLottieBandClock provides presenterManager.lottieBandClock,
+            LocalTitleSlideClock provides presenterManager.titleSlideClock,
             LocalBandSongLineIndex provides bandSongLineIndex,
             LocalBandOutgoing provides bandOutgoing,
         ) {
@@ -355,4 +386,4 @@ private const val PREVIEW_BACKGROUND = 0xFF121212
 
 private const val LIVE_BADGE_COLOR = 0xFF2196F3
 
-private const val LOCK_BADGE_COLOR = 0xFFFFC107
+internal const val LOCK_BADGE_COLOR = 0xFFFFC107

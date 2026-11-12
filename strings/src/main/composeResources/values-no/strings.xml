@@ -95,7 +95,6 @@
     <string name="clear">Tøm</string>
     <string name="clear_recents">Tøm nylige</string>
     <string name="recent">Nylige:</string>
-    <string name="found_results">Fant %1$d treff</string>
     <string name="menu_edit">Rediger</string>
     <string name="menu_settings">Innstillinger</string>
     <string name="menu_connect">Koble til</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">Forslag til funksjon</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Bruksanvisninger (blogg)</string>
+    <string name="menu_tutorial_videos">Instruksjonsvideoer</string>
     <string name="menu_check_for_updates">Se etter oppdateringer…</string>
     <string name="menu_keyboard_shortcuts">Hurtigtaster</string>
     <string name="shortcut_category_global">Globalt</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">Knapp</string>
     <string name="action_field_macro">Makronavn</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter kan ikke starte på denne datamaskinen</string>
+    <string name="system_fonts_failed_body">Kunne ikke laste inn systemskriftene på denne datamaskinen.</string>
+    <string name="system_fonts_failed_old_windows_reason">Denne Windows-versjonen er eldre enn Windows 10, og det er den mest sannsynlige årsaken.</string>
+    <string name="system_fonts_failed_old_windows_fix">Oppdatering til Windows 10 eller nyere bør løse dette.</string>
 </resources>

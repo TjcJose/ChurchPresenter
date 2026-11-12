@@ -1,5 +1,8 @@
 package org.churchpresenter.web.tabs
 
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.churchpresenter.sharedui.composables.goLiveKeyTarget
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -130,6 +133,11 @@ fun WebTab(
     val isLive = output?.isLive(Presenting.WEBSITE) == true
 
     val navController = rememberWebNavController()
+    // The button outlives the tab on the output; the tab's own page starts in its layout.
+    LaunchedEffect(navController) {
+        val mobile = output?.webMobile?.value ?: return@LaunchedEffect
+        if (mobile != navController.mobileMode) navController.setMobileEmulation(mobile)
+    }
     val canShowOutput = hasSecondaryDisplay || devOutputWindows
     val webCapable = remember(appSettings.projectionSettings, devOutputWindows) {
         hasWebCapableOutput(appSettings.projectionSettings, devOutputWindows)
@@ -231,6 +239,7 @@ internal fun WebEngineUnavailable(
 
 @Composable
 internal fun WebTabScope.NavButtons() {
+    val scope = rememberCoroutineScope()
     ActionIconButton(
         onClick = { goBack() },
         tooltipText = stringResource(Res.string.web_back),
@@ -253,7 +262,8 @@ internal fun WebTabScope.NavButtons() {
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
     ActionIconButton(
-        onClick = { clearWebCache() },
+        // Chromium's cache can be large: it is deleted off the event thread.
+        onClick = { scope.launch(Dispatchers.IO) { clearWebCache() } },
         tooltipText = stringResource(Res.string.web_clear_cache),
         painter = painterResource(IconRes.drawable.ic_clear_cache),
         containerColor = MaterialTheme.colorScheme.errorContainer,

@@ -104,12 +104,12 @@ registers them; `{name}` is a path parameter.
 | `POST /api/schedule/add` | API key | — | *approval* |
 | `POST /api/schedule/add-batch` | API key | — | *approval* |
 | `POST /api/project` | API key | — | *approval* |
-| `POST /api/clear` | API key | `layer=` and `group=` only | Clearing everything is not dev mode |
+| `POST /api/clear` | API key | `layer=messages` and `layer=props` only | Clearing everything, a clear group or any other layer is not dev mode |
 | `POST /api/take` | API key | dev | |
 | `POST /api/message` | API key | dev | |
 | `GET /api/props` | API key | dev | |
 | `POST /api/props/{id}/{action}` | API key | dev | `{action}` is `on`, `off` or `toggle` |
-| `GET /api/clear-groups` | API key | dev | |
+| `GET /api/clear-groups` | API key | — | |
 | `GET /api/macros` | API key | dev | |
 | `POST /api/macro/{name}` | API key | dev | |
 
@@ -921,10 +921,10 @@ curl -k -X POST https://192.168.1.10:8765/api/clear
 { "ok": true }
 ```
 
-**Optional query param** (dev mode only, like `group=` below) — take down one layer and leave the rest up: `layer=slide` (Bible, songs,
+**Optional query param** — take down one layer and leave the rest up: `layer=slide` (Bible, songs,
 a presentation, a web page, a scene, Q&A or the dictionary), `media` (a video or pictures),
-`lowerthird`, `captions`, `announcements`, `props` or `messages`. A layer with nothing on it is left
-as it is, and an unknown name clears nothing.
+`lowerthird`, `captions`, `announcements`, `props` or `messages` (those last two in dev mode only, as
+their features are). A layer with nothing on it is left as it is, and an unknown name clears nothing.
 
 ```bash
 curl -k -X POST "https://192.168.1.10:8765/api/clear?layer=lowerthird"
@@ -932,7 +932,7 @@ curl -k -X POST "https://192.168.1.10:8765/api/clear?layer=lowerthird"
 
 Over the WebSocket, `clear` takes the same `{"layer": "..."}` in its payload.
 
-**Clear groups** (dev mode only, as is `GET /api/clear-groups`) — `group=` fires one of the operator's clear groups, named by its id or its name
+**Clear groups** — `group=` fires one of the operator's clear groups, named by its id or its name
 (any case), and takes down every layer in it: e.g. *Clear text* = slide + messages. An unknown group
 answers `404 {"ok":false,"reason":"no such clear group"}`. Over the WebSocket, `clear` takes
 `{"group": "..."}`, acked with `ok:false` and `no_such_group` for an unknown one.
@@ -1468,7 +1468,7 @@ from an admin page. Pages: `GET /qa` (submit), `GET /qa/vote` (vote) and `GET /q
 
 | Route | Body | Answers |
 |-------|------|---------|
-| `GET /api/qa/status` | — | `{"sessionActive":true,"cooldownSeconds":30,"displayedQuestionId":"…","votingEnabled":false}` |
+| `GET /api/qa/status` | — | `{"sessionActive":true,"cooldownSeconds":30,"displayedQuestionId":"…","votingEnabled":false,"sessionName":"Sunday service"}` — `sessionName` is empty while no session runs |
 | `POST /api/qa/submit` | `{"text":"…","name":"optional"}` | The new question (`QuestionDto`); `403` when no session is active, `429` within the cooldown |
 | `GET /api/qa/approved` | — | `[{"id":"…","text":"…","voteCount":3,"voted":"up"}]` (`voted` is this client's vote or `null`); `403` when voting is off |
 | `POST /api/qa/vote` | `{"questionId":"…","direction":"up"}` (`up` or `down`) | `{"ok":true,"voted":"up"}`; voting again the same way takes the vote back |
@@ -1492,7 +1492,7 @@ Every route here takes the admin password (`X-QA-Password` or `?password=`). All
 | `POST /api/qa/questions/{id}/done` | — | Marks it answered |
 | `POST /api/qa/questions/{id}/display` | — | Puts it on the output (it must be approved) |
 | `DELETE /api/qa/questions/{id}` | — | Deletes it |
-| `POST /api/qa/add` | `{"text":"…"}` | Adds a question as the moderator; answers the `QuestionDto` |
+| `POST /api/qa/add` | `{"text":"…"}` | Adds a question as the moderator; answers the `QuestionDto`. `403` while no session is running |
 | `POST /api/qa/clear-display` | — | Takes the displayed question down |
 | `POST /api/qa/clear-all` | — | Deletes every question |
 
@@ -1574,8 +1574,9 @@ runs plain HTTP.
 Lobby screens running the ChurchPresenter Signage player (its own repo,
 `ChurchPresenter/ChurchPresenter-Signage`, whose `docs/PROTOCOL.md` is the full protocol). Signage is
 on while the desktop's Signage tab is shown (it starts hidden). The server advertises itself as
-`_churchpresenter._tcp` over mDNS while signage and the server are on, so a player on the same
-network finds it without an address.
+`_churchpresenter._tcp` over mDNS while it is on, so a player on the same network, or a TV running
+the mobile app, finds it without an address. A player that reaches it with signage off is answered
+as below.
 
 - `WS /api/signage/ws` — the player's first message is `hello`. An unpaired player is answered
   `pairing_pending` and listed in the Signage tab with the code its TV shows; on approval it is sent
@@ -1727,7 +1728,7 @@ Send a command with `ws.send(JSON.stringify({ type, payload }))`.
 | `media_seek_to` | the position in ms, as a bare number (`"90000"`) | Seeks media to that position | No |
 | `media_set_volume` | the volume `0.0`–`1.0`, as a bare number | Sets the media volume | No |
 | `media_mute_toggle` | — | Mutes or unmutes media | No |
-| `clear` | empty, `{"layer": "..."}` or `{"group": "..."}` | Clear / hide the projection display; a layer or a clear group is **dev mode only** | No |
+| `clear` | empty, `{"layer": "..."}` or `{"group": "..."}` | Clear / hide the projection display, one layer or a clear group; the `messages` and `props` layers are **dev mode only** | No |
 | `take` | — | Take, as `POST /api/take` — **dev mode only** | No |
 | `message` | as `POST /api/message` | Puts a message up — **dev mode only** | No |
 | `prop` | `{"id": "...", "on": true}` (`on` absent toggles) | Switches a prop — **dev mode only** | No |

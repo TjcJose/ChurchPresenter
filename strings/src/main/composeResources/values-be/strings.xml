@@ -64,7 +64,6 @@
     <!-- Schedule Tab Strings -->
     <string name="schedule">Праграма</string>
     <string name="clear">Ачысціць</string>
-    <string name="found_results">Знойдзена %1$d вынік(аў)</string>
 
     <string name="menu_edit">Праўка</string>
     <string name="menu_settings">Налады</string>
@@ -78,6 +77,7 @@
     <string name="submit_feature_request">Прапанаваць функцыю</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Блог з падручнікамі</string>
+    <string name="menu_tutorial_videos">Відэаўрокі</string>
     <string name="menu_check_for_updates">Праверыць абнаўленні…</string>
 
     <!-- Options Dialog Strings -->
@@ -3802,4 +3802,8 @@
     <string name="action_field_button">Кнопка</string>
     <string name="action_field_macro">Назва макраса</string>
     <string name="action_wait_seconds">%1$s с</string>
+    <string name="system_fonts_failed_title">Church Presenter не можа запусціцца на гэтым камп'ютары</string>
+    <string name="system_fonts_failed_body">Не ўдалося загрузіць сістэмныя шрыфты гэтага камп'ютара.</string>
+    <string name="system_fonts_failed_old_windows_reason">Гэтая версія Windows старэйшая за Windows 10 — хутчэй за ўсё, прычына ў гэтым.</string>
+    <string name="system_fonts_failed_old_windows_fix">Абнаўленне да Windows 10 або навейшай версіі павінна вырашыць праблему.</string>
 </resources>

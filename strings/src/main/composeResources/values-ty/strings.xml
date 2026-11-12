@@ -131,7 +131,6 @@
     <string name="clear">Tāmā</string>
     <string name="clear_recents">Tāmā i te mau mea ʻāpī</string>
     <string name="recent">ʻĀpī nei:</string>
-    <string name="found_results">%1$d hotu i ʻitehia</string>
 
     <string name="menu_edit">Taui</string>
     <string name="menu_settings">Te mau paramètre</string>
@@ -213,6 +212,7 @@
     <string name="submit_feature_request">Ani i te hōʻē mea ʻāpī</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Blog haʻapiʻiraʻa</string>
+    <string name="menu_tutorial_videos">Vidéo haʻapiʻiraʻa</string>
     <string name="menu_check_for_updates">Hiʻo i te mau faʻaʻāpīraʻa…</string>
     <string name="menu_keyboard_shortcuts">Te mau pata poto</string>
     <string name="shortcut_category_global">Nā te mau vāhi atoʻa</string>
@@ -3966,4 +3966,8 @@
     <string name="calendar_joined_leave">Faʻarue</string>
     <string name="calendar_joined_take_over">Faʻariro i teie ei ʻōnohi matamua</string>
     <string name="calendar_joined_take_over_hint">ʻAita %1$s i synchronisé nō te hōʻē hepetoma. Mai te mea ua moʻe roa ʻoia, e nehenehe teie ʻōnohi e mono iāna.</string>
+    <string name="system_fonts_failed_title">ʻAita e nehenehe e haʻamata i te Church Presenter i niʻa i teie roro uira</string>
+    <string name="system_fonts_failed_body">ʻAita i nehenehe e faʻauta i te mau huru pāpaʻi o te système o teie roro uira.</string>
+    <string name="system_fonts_failed_old_windows_reason">E mea tahito aʻe teie version Windows i te Windows 10, ʻo te tumu paha ia.</string>
+    <string name="system_fonts_failed_old_windows_fix">Ia faʻaʻāpī i te Windows 10 aore ra i te hōʻē version ʻāpī aʻe, e mea tiʻa ia ʻafaro te reira.</string>
 </resources>

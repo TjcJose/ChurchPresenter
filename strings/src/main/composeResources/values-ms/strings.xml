@@ -95,7 +95,6 @@
     <string name="clear">Kosongkan</string>
     <string name="clear_recents">Kosongkan senarai terbaharu</string>
     <string name="recent">Terbaharu:</string>
-    <string name="found_results">Menemui %1$d hasil</string>
     <string name="menu_edit">Edit</string>
     <string name="menu_settings">Tetapan</string>
     <string name="menu_connect">Sambung</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">Permintaan Ciri</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Blog Panduan</string>
+    <string name="menu_tutorial_videos">Video Panduan</string>
     <string name="menu_check_for_updates">Periksa Kemas Kini…</string>
     <string name="menu_keyboard_shortcuts">Pintasan Papan Kekunci</string>
     <string name="shortcut_category_global">Sejagat</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">Butang</string>
     <string name="action_field_macro">Nama makro</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter tidak dapat dimulakan pada komputer ini</string>
+    <string name="system_fonts_failed_body">Fon sistem komputer ini tidak dapat dimuatkan.</string>
+    <string name="system_fonts_failed_old_windows_reason">Versi Windows ini lebih lama daripada Windows 10, dan itulah punca yang paling mungkin.</string>
+    <string name="system_fonts_failed_old_windows_fix">Mengemas kini kepada Windows 10 atau lebih baharu sepatutnya dapat menyelesaikannya.</string>
 </resources>

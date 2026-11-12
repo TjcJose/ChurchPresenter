@@ -89,7 +89,6 @@
     <string name="clear">Tühjenda</string>
     <string name="clear_recents">Tühjenda viimased</string>
     <string name="recent">Viimased:</string>
-    <string name="found_results">Leiti %1$d tulemus(t)</string>
 
     <string name="menu_edit">Redigeeri</string>
     <string name="menu_settings">Seaded</string>
@@ -108,6 +107,7 @@
     <string name="submit_feature_request">Funktsioonisoov</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Juhendite blogi</string>
+    <string name="menu_tutorial_videos">Videojuhendid</string>
     <string name="menu_check_for_updates">Kontrolli uuendusi…</string>
     <string name="menu_keyboard_shortcuts">Kiirklahvid</string>
     <string name="shortcut_category_global">Globaalne</string>
@@ -3835,4 +3835,8 @@
     <string name="action_field_button">Nupp</string>
     <string name="action_field_macro">Makro nimi</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter ei saa selles arvutis käivituda</string>
+    <string name="system_fonts_failed_body">Selle arvuti süsteemifonte ei õnnestunud laadida.</string>
+    <string name="system_fonts_failed_old_windows_reason">See Windowsi versioon on vanem kui Windows 10, mis on kõige tõenäolisem põhjus.</string>
+    <string name="system_fonts_failed_old_windows_fix">Probleemi peaks lahendama värskendamine versioonile Windows 10 või uuemale.</string>
 </resources>

@@ -57,12 +57,17 @@ class OutputSettingsResolutionTest {
     @Test
     fun `a bible profile never carries the library selection or the panels`() {
         val global = AppSettings(
-            bibleSettings = BibleSettings(storageDirectory = "/church/bibles", splitBrowseMode = true),
+            bibleSettings = BibleSettings(
+                storageDirectory = "/church/bibles",
+                splitBrowseMode = true,
+                verseAutoScroll = false,
+            ),
         )
         val profile = OutputProfile(
             bibleSettings = BibleSettings(
                 storageDirectory = "/stale",
                 splitBrowseMode = false,
+                verseAutoScroll = true,
                 verticalAlignment = "Middle",
             ),
         )
@@ -70,6 +75,7 @@ class OutputSettingsResolutionTest {
 
         assertEquals("/church/bibles", resolved.bibleSettings.storageDirectory)
         assertEquals(true, resolved.bibleSettings.splitBrowseMode)
+        assertEquals(false, resolved.bibleSettings.verseAutoScroll, "the verse list scrolls one way per install")
         assertEquals("Middle", resolved.bibleSettings.verticalAlignment, "styling still comes from the profile")
     }
 
@@ -106,7 +112,7 @@ class OutputSettingsResolutionTest {
     }
 
     @Test
-    fun `a translation the profile has never heard of keeps the global styling`() {
+    fun `a translation the profile has never heard of takes the profile's All look`() {
         val global = AppSettings(
             bibleSettings = BibleSettings(
                 translations = listOf(
@@ -123,11 +129,14 @@ class OutputSettingsResolutionTest {
         val resolved = global.resolvedFor(profile)
 
         assertEquals(22, resolved.bibleSettings.translationList()[0].textFontSize)
+        // No All layer stored, so All is the profile's first translation's look -- not the class
+        // defaults, and not the document's values, which no output reads.
         assertEquals(
-            55,
+            22,
             resolved.bibleSettings.translationList()[1].textFontSize,
-            "a translation the profile has never heard of is not left unstyled",
+            "a translation the profile has never heard of looks like the rest of its stack",
         )
+        assertEquals("NEW.spb", resolved.bibleSettings.translationList()[1].fileName)
     }
 
     @Test

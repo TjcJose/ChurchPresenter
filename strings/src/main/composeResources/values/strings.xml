@@ -107,6 +107,7 @@
     <string name="bible_cross_references">Cross References</string>
     <string name="bible_cross_references_title">Refs</string>
     <string name="bible_cross_references_enable">Show cross reference links</string>
+    <string name="bible_verse_auto_scroll">Scroll ahead when a verse near the bottom of the list is selected</string>
     <string name="bible_cross_references_none">No cross references</string>
     <string name="bible_cross_references_often_next">Often next</string>
     <string name="bible_cross_references_passage">Passage %1$s</string>
@@ -131,7 +132,10 @@
     <string name="clear">Clear</string>
     <string name="clear_recents">Clear recents</string>
     <string name="recent">Recent:</string>
-    <string name="found_results">Found %1$d result(s)</string>
+    <string name="bible_found_results_bible">Found %1$d result(s) in the entire Bible</string>
+    <string name="bible_found_results_book">Found %1$d result(s) in %2$s</string>
+    <string name="bible_no_results_bible">No results found for "%1$s" in the entire Bible</string>
+    <string name="bible_no_results_book">No results found for "%1$s" in %2$s</string>
 
     <string name="menu_edit">Edit</string>
     <string name="menu_settings">Settings</string>
@@ -214,6 +218,7 @@
     <string name="submit_feature_request">Feature Request</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">How To Blog</string>
+    <string name="menu_tutorial_videos">Tutorial Videos</string>
     <string name="menu_check_for_updates">Check for Updates…</string>
     <string name="menu_keyboard_shortcuts">Keyboard Shortcuts</string>
     <string name="shortcut_category_global">Global</string>
@@ -1273,6 +1278,12 @@
     <string name="announcement_animation_speed">Speed</string>
     <string name="announcement_loop_count">Loop Count</string>
     <string name="announcement_loop_tooltip">0 = infinite loop</string>
+    <string name="announcement_show_for">Show For (sec)</string>
+    <string name="announcement_show_for_tooltip">0 = stays up until cleared</string>
+    <string name="title_slide_animation">Animation</string>
+    <string name="title_slide_animation_sub">A Lottie that plays the title slide: the number and title go in its Text layers, the credits in its Reference layers. None draws it as usual.</string>
+    <string name="title_slide_animation_browse">Browse…</string>
+    <string name="title_slide_animation_files">Lottie animations (.json)</string>
     <string name="license_title">End User License Agreement (EULA)</string>
     <string name="license_accept_button">I Accept</string>
     <string name="license_decline_button">Decline &amp; Exit</string>
@@ -1641,6 +1652,9 @@
     <string name="aspect_ratio_mismatch">Aspect ratio mismatch: file is %1$dx%2$d (%3$s) but output is %4$dx%5$d (%6$s)</string>
     <string name="mobile_view">Mobile</string>
     <string name="desktop_view">Desktop</string>
+    <string name="profile_web_page_view">Website layout</string>
+    <string name="profile_web_page_view_follow">Follow Web tab</string>
+    <string name="profile_web_page_view_note">When screens show different layouts, each layout is its own copy of the page: scrolling and typing may not match between them, and results may be unexpected.</string>
     <string name="interactive_mode">Interactive</string>
     <string name="mirror_mode">Mirror</string>
 
@@ -2045,6 +2059,17 @@
     <string name="qa_stop_session">Stop Session</string>
     <string name="qa_new_session">New Session</string>
     <string name="qa_resume">Resume (%1$d)</string>
+    <string name="qa_resume_session">Resume</string>
+    <string name="qa_session_option">%1$s (%2$d)</string>
+    <string name="qa_session_running">Session: %1$s</string>
+    <string name="qa_session_label">Session</string>
+    <string name="qa_close_history">Close history</string>
+    <string name="qa_session_name_label">Session name</string>
+    <string name="qa_start_session">Start</string>
+    <string name="qa_delete_session">Delete Session</string>
+    <string name="qa_no_session_banner">No session running — nobody can submit questions yet.</string>
+    <string name="qa_show_more">Show more</string>
+    <string name="qa_show_less">Show less</string>
     <string name="qa_incoming">Incoming</string>
     <string name="qa_all">All</string>
     <string name="qa_approved">Approved</string>
@@ -2078,6 +2103,10 @@
     <string name="qa_qr_message_default">Scan to ask a question</string>
     <string name="qa_qr_message_reset">Reset to default</string>
     <string name="qa_admin_uses_api_key">Admin access uses your server API key (Server settings).</string>
+    <string name="qa_admin_password_label">Admin password</string>
+    <string name="qa_admin_password_hint">Devices that enter it skip approval. With no password, each device asks for approval (and needs the server API key, when enabled).</string>
+    <string name="qa_show_password">Show password</string>
+    <string name="qa_hide_password">Hide password</string>
     <string name="qa_approve">Approve</string>
     <string name="qa_deny">Deny</string>
     <string name="qa_mark_done">Mark Done</string>
@@ -2867,6 +2896,12 @@
     <string name="profile_applies_to">Applies to</string>
     <string name="profile_group_text">Text</string>
     <string name="profile_group_translations">Translations</string>
+    <string name="profile_bible_looks_follow">Follow</string>
+    <string name="profile_bible_looks_follow_place">Place</string>
+    <string name="profile_bible_looks_follow_bible">Bible version</string>
+    <string name="profile_bible_looks_follow_place_hint">Each place keeps its look when its Bible is changed or swapped</string>
+    <string name="profile_bible_looks_follow_bible_hint">Each Bible keeps its own look wherever it moves</string>
+    <string name="profile_bible_translation_place">%1$d · %2$s</string>
     <string name="profile_layout">Layout</string>
     <string name="profile_region_moves_background">Background follows Content Region</string>
     <string name="profile_region_moves_background_sub">On: the background shrinks and moves with the text. Off: the background fills the screen and only the text moves.</string>
@@ -4087,6 +4122,9 @@
     <string name="signage_new_screen">A new screen wants to join</string>
     <string name="signage_new_screen_hint">Approve only if the TV shows this same code.</string>
     <string name="signage_approve">Approve</string>
+    <string name="signage_held_screen">%1$s was removed</string>
+    <string name="signage_held_screen_hint">It is held back for a few minutes so another computer can pick it up. Pair it here instead if you changed your mind.</string>
+    <string name="signage_pair_here">Pair here</string>
     <string name="signage_decline">Decline</string>
     <string name="signage_default_name">Screen %1$d</string>
     <string name="signage_online">Online</string>
@@ -4101,6 +4139,7 @@
     <string name="signage_age_days">%1$d days ago</string>
     <string name="signage_preview_not_connected">Not connected</string>
     <string name="signage_preview_unsupported">No preview on this player</string>
+    <string name="signage_cannot_play">This player can’t show %1$s, so it’s skipped</string>
     <string name="signage_showing">Showing %1$s</string>
     <string name="signage_showing_idle">Showing the idle card</string>
     <string name="signage_plays">Plays</string>
@@ -4112,6 +4151,7 @@
     <string name="signage_platform_linux_arm64">Linux (ARM)</string>
     <string name="signage_platform_linux_x64">Linux PC</string>
     <string name="signage_platform_windows_x64">Windows PC</string>
+    <string name="signage_platform_android_tv">Android TV</string>
     <string name="signage_identify">Show its name on the screen</string>
     <string name="signage_factory_reset">Factory reset</string>
     <string name="signage_factory_reset_hint">Deletes everything on the screen and removes it from this list. It asks first.</string>
@@ -4210,6 +4250,8 @@
     <string name="signage_choose_file">Choose a picture or video</string>
     <string name="signage_file_title_edit">Edit picture or video</string>
     <string name="signage_file_change">Change file…</string>
+    <string name="signage_folder_change">Change…</string>
+    <string name="signage_locate">Locate…</string>
     <string name="signage_pictures_and_videos">Pictures and videos</string>
     <string name="signage_link_title">Add a link</string>
     <string name="signage_link_title_edit">Edit link</string>
@@ -4323,4 +4365,22 @@
     <string name="signage_update_restarting">restarting</string>
     <string name="signage_update_failed">Update to %1$s failed: %2$s</string>
     <string name="signage_update_rolled_back">Update to %1$s didn't start, so the screen went back: %2$s</string>
+    <string name="system_fonts_failed_title">Church Presenter can't start on this computer</string>
+    <string name="system_fonts_failed_body">It couldn't load this computer's system fonts.</string>
+    <string name="system_fonts_failed_old_windows_reason">This version of Windows is older than Windows 10, which is the most likely reason.</string>
+    <string name="system_fonts_failed_old_windows_fix">Updating to Windows 10 or later should fix it.</string>
+    <string name="screen_hold_menu">Screen hold options</string>
+    <string name="screen_hold">Hold (freeze this screen)</string>
+    <string name="screen_blank">Blank (black)</string>
+    <string name="screen_release">Release this screen</string>
+    <string name="screen_hold_all">Hold all screens</string>
+    <string name="screen_release_all">Release all holds</string>
+    <string name="screen_held_badge">HELD · press Clear ×3 to release</string>
+    <string name="screen_blank_badge">BLANK · press Clear ×3 to release</string>
+    <string name="action_hold_screen">Hold screen</string>
+    <string name="action_field_screen">Screen (number or all)</string>
+    <string name="action_hold_mode_freeze">Freeze last frame</string>
+    <string name="action_hold_mode_black">Black</string>
+    <string name="shortcut_description_hold_all_screens">Hold every screen on its last frame</string>
+    <string name="shortcut_description_release_all_screens">Release every held screen</string>
 </resources>

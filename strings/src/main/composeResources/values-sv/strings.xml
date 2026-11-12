@@ -95,7 +95,6 @@
     <string name="clear">Rensa</string>
     <string name="clear_recents">Rensa senaste</string>
     <string name="recent">Senaste:</string>
-    <string name="found_results">Hittade %1$d träff(ar)</string>
     <string name="menu_edit">Redigera</string>
     <string name="menu_settings">Inställningar</string>
     <string name="menu_connect">Anslut</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">Funktionsförslag</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Instruktionsblogg</string>
+    <string name="menu_tutorial_videos">Instruktionsvideor</string>
     <string name="menu_check_for_updates">Sök efter uppdateringar…</string>
     <string name="menu_keyboard_shortcuts">Tangentbordsgenvägar</string>
     <string name="shortcut_category_global">Globalt</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">Knapp</string>
     <string name="action_field_macro">Makronamn</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter kan inte starta på den här datorn</string>
+    <string name="system_fonts_failed_body">Det gick inte att läsa in datorns systemteckensnitt.</string>
+    <string name="system_fonts_failed_old_windows_reason">Den här Windows-versionen är äldre än Windows 10, vilket är den troligaste orsaken.</string>
+    <string name="system_fonts_failed_old_windows_fix">En uppdatering till Windows 10 eller senare bör lösa problemet.</string>
 </resources>

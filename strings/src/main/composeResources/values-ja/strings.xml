@@ -95,7 +95,6 @@
     <string name="clear">クリア</string>
     <string name="clear_recents">履歴をクリア</string>
     <string name="recent">最近使った項目：</string>
-    <string name="found_results">%1$d 件見つかりました</string>
     <string name="menu_edit">編集</string>
     <string name="menu_settings">設定</string>
     <string name="menu_connect">接続</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">機能のご要望</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">使い方ブログ</string>
+    <string name="menu_tutorial_videos">使い方動画</string>
     <string name="menu_check_for_updates">更新を確認…</string>
     <string name="menu_keyboard_shortcuts">キーボードショートカット</string>
     <string name="shortcut_category_global">全体</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">ボタン</string>
     <string name="action_field_macro">マクロ名</string>
     <string name="action_wait_seconds">%1$s 秒</string>
+    <string name="system_fonts_failed_title">このコンピューターでは Church Presenter を起動できません</string>
+    <string name="system_fonts_failed_body">このコンピューターのシステムフォントを読み込めませんでした。</string>
+    <string name="system_fonts_failed_old_windows_reason">この Windows のバージョンは Windows 10 より古く、これが最も可能性の高い原因です。</string>
+    <string name="system_fonts_failed_old_windows_fix">Windows 10 以降に更新すると解決するはずです。</string>
 </resources>

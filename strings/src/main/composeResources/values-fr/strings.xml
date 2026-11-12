@@ -67,7 +67,6 @@
     <!-- Schedule Tab Strings -->
     <string name="schedule">Programme</string>
     <string name="clear">Effacer</string>
-    <string name="found_results">%1$d résultat(s) trouvé(s)</string>
 
     <string name="menu_edit">Édition</string>
     <string name="menu_settings">Paramètres</string>
@@ -83,6 +82,7 @@
     <string name="submit_feature_request">Soumettre une demande de fonctionnalité</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Blog de tutoriels</string>
+    <string name="menu_tutorial_videos">Tutoriels vidéo</string>
     <string name="menu_check_for_updates">Vérifier les mises à jour…</string>
     <string name="menu_keyboard_shortcuts">Raccourcis clavier</string>
     <string name="shortcut_category_global">Global</string>
@@ -3830,4 +3830,8 @@
     <string name="action_field_button">Bouton</string>
     <string name="action_field_macro">Nom de la macro</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter ne peut pas démarrer sur cet ordinateur</string>
+    <string name="system_fonts_failed_body">Impossible de charger les polices système de cet ordinateur.</string>
+    <string name="system_fonts_failed_old_windows_reason">Cette version de Windows est antérieure à Windows 10, ce qui en est la cause la plus probable.</string>
+    <string name="system_fonts_failed_old_windows_fix">La mise à niveau vers Windows 10 ou une version ultérieure devrait résoudre le problème.</string>
 </resources>

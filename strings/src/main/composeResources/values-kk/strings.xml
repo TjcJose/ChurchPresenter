@@ -64,7 +64,6 @@
     <!-- Schedule Tab Strings -->
     <string name="schedule">Бағдарлама</string>
     <string name="clear">Тазалау</string>
-    <string name="found_results">%1$d нәтиже табылды</string>
 
     <string name="menu_edit">Өңдеу</string>
     <string name="menu_settings">Параметрлер</string>
@@ -78,6 +77,7 @@
     <string name="submit_feature_request">Мүмкіндік сұрауын жіберу</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Нұсқаулық блог</string>
+    <string name="menu_tutorial_videos">Бейне нұсқаулықтар</string>
     <string name="menu_check_for_updates">Жаңартуларды тексеру…</string>
 
     <!-- Options Dialog Strings -->
@@ -3803,4 +3803,8 @@
     <string name="action_field_button">Түйме</string>
     <string name="action_field_macro">Макрос атауы</string>
     <string name="action_wait_seconds">%1$s с</string>
+    <string name="system_fonts_failed_title">Church Presenter бұл компьютерде іске қосыла алмайды</string>
+    <string name="system_fonts_failed_body">Бұл компьютердің жүйелік қаріптерін жүктеу мүмкін болмады.</string>
+    <string name="system_fonts_failed_old_windows_reason">Windows-тың бұл нұсқасы Windows 10-нан ескі, себебі осында болуы әбден мүмкін.</string>
+    <string name="system_fonts_failed_old_windows_fix">Windows 10 немесе одан жаңа нұсқаға жаңарту мәселені шешуі тиіс.</string>
 </resources>

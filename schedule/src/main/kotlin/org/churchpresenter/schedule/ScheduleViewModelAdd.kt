@@ -152,6 +152,7 @@ fun ScheduleViewModel.addAnnouncement(
     liveClockFormat: String = "HH:mm:ss",
     backdrop: TextBackdrop = TextBackdrop(),
     outline: TextOutline = TextOutline(),
+    showForSeconds: Int = 0,
 ) {
     addOrPush(
         ScheduleItem.AnnouncementItem(
@@ -186,6 +187,7 @@ fun ScheduleViewModel.addAnnouncement(
             liveClockFormat = liveClockFormat,
             backdrop = backdrop,
             outline = outline,
+            showForSeconds = showForSeconds,
         )
     )
 }

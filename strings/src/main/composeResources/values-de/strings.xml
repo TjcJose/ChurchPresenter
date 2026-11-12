@@ -64,7 +64,6 @@
     <!-- Schedule Tab Strings -->
     <string name="schedule">Programm</string>
     <string name="clear">Löschen</string>
-    <string name="found_results">%1$d Ergebnis(se) gefunden</string>
 
     <string name="menu_edit">Bearbeiten</string>
     <string name="menu_settings">Einstellungen</string>
@@ -78,6 +77,7 @@
     <string name="submit_feature_request">Funktionswunsch einreichen</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">Anleitungs-Blog</string>
+    <string name="menu_tutorial_videos">Video-Anleitungen</string>
     <string name="menu_check_for_updates">Nach Updates suchen…</string>
 
     <!-- Options Dialog Strings -->
@@ -3803,4 +3803,8 @@
     <string name="action_field_button">Taste</string>
     <string name="action_field_macro">Makroname</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Church Presenter kann auf diesem Computer nicht starten</string>
+    <string name="system_fonts_failed_body">Die Systemschriftarten dieses Computers konnten nicht geladen werden.</string>
+    <string name="system_fonts_failed_old_windows_reason">Diese Windows-Version ist älter als Windows 10, was die wahrscheinlichste Ursache ist.</string>
+    <string name="system_fonts_failed_old_windows_fix">Ein Update auf Windows 10 oder neuer sollte das Problem beheben.</string>
 </resources>

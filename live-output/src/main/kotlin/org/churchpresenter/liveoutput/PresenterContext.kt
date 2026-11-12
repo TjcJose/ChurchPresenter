@@ -1,5 +1,6 @@
 package org.churchpresenter.liveoutput
 
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.referentialEqualityPolicy
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,12 @@ internal class PresenterContext {
     /** Per-screen lock: screen slot index -> locked mode; a missing entry follows [slideMode]. */
     val screenLocks = mutableStateOf<Map<Int, Presenting>>(emptyMap())
 
+    /** Per-screen hold: screen slot index -> how it is held. Runtime only; a missing entry is not held. */
+    val screenHolds = mutableStateOf<Map<Int, ScreenHold>>(emptyMap())
+
+    /** How many screens the output windows opened, which "hold all" holds. */
+    val screenCount = mutableIntStateOf(0)
+
     /** Reports a live-content change of [Presenting] type; set by the manager to its own broadcast. */
     var notify: (Presenting) -> Unit = {}
 
@@ -46,4 +53,14 @@ internal class PresenterContext {
 
     /** Clears the display the way the manager does, for an overlay that ends on its own. */
     var requestClearDisplay: () -> Unit = {}
+
+    /** Told which overlays [setOverlays] took down, so what they leave behind can be let go. */
+    var onOverlaysDropped: (Set<Presenting>) -> Unit = {}
+
+    /** Puts [next] up as the overlays, telling [onOverlaysDropped] which of the old ones went. */
+    fun setOverlays(next: Set<Presenting>) {
+        val dropped = overlays.value - next
+        overlays.value = next
+        if (dropped.isNotEmpty()) onOverlaysDropped(dropped)
+    }
 }

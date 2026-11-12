@@ -95,7 +95,6 @@
     <string name="clear">مسح</string>
     <string name="clear_recents">مسح العناصر الأخيرة</string>
     <string name="recent">الأخيرة:</string>
-    <string name="found_results">تم العثور على %1$d نتيجة</string>
     <string name="menu_edit">تحرير</string>
     <string name="menu_settings">الإعدادات</string>
     <string name="menu_connect">اتصال</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">طلب ميزة</string>
     <string name="action_ok">موافق</string>
     <string name="menu_how_to_blog">مدوّنة الإرشادات</string>
+    <string name="menu_tutorial_videos">مقاطع فيديو تعليمية</string>
     <string name="menu_check_for_updates">التحقق من التحديثات…</string>
     <string name="menu_keyboard_shortcuts">اختصارات لوحة المفاتيح</string>
     <string name="shortcut_category_global">عام</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">الزر</string>
     <string name="action_field_macro">اسم الماكرو</string>
     <string name="action_wait_seconds">%1$s ث</string>
+    <string name="system_fonts_failed_title">لا يمكن تشغيل Church Presenter على هذا الكمبيوتر</string>
+    <string name="system_fonts_failed_body">تعذّر تحميل خطوط النظام على هذا الكمبيوتر.</string>
+    <string name="system_fonts_failed_old_windows_reason">إصدار Windows هذا أقدم من Windows 10، وهذا هو السبب الأرجح.</string>
+    <string name="system_fonts_failed_old_windows_fix">من المفترض أن يحل التحديث إلى Windows 10 أو أحدث هذه المشكلة.</string>
 </resources>

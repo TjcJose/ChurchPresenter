@@ -95,7 +95,6 @@
     <string name="clear">清除</string>
     <string name="clear_recents">清除最近使用</string>
     <string name="recent">最近使用：</string>
-    <string name="found_results">找到 %1$d 条结果</string>
     <string name="menu_edit">编辑</string>
     <string name="menu_settings">设置</string>
     <string name="menu_connect">连接</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">功能建议</string>
     <string name="action_ok">确定</string>
     <string name="menu_how_to_blog">使用教程博客</string>
+    <string name="menu_tutorial_videos">视频教程</string>
     <string name="menu_check_for_updates">检查更新…</string>
     <string name="menu_keyboard_shortcuts">键盘快捷键</string>
     <string name="shortcut_category_global">全局</string>
@@ -3864,4 +3864,8 @@
     <string name="action_field_button">按钮</string>
     <string name="action_field_macro">宏名称</string>
     <string name="action_wait_seconds">%1$s 秒</string>
+    <string name="system_fonts_failed_title">Church Presenter 无法在此计算机上启动</string>
+    <string name="system_fonts_failed_body">无法加载此计算机的系统字体。</string>
+    <string name="system_fonts_failed_old_windows_reason">此 Windows 版本低于 Windows 10，这是最可能的原因。</string>
+    <string name="system_fonts_failed_old_windows_fix">升级到 Windows 10 或更高版本应可解决此问题。</string>
 </resources>

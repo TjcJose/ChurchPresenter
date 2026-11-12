@@ -118,6 +118,9 @@ object Features {
     /** Answers [ServerMessage.Wipe]. */
     const val WIPE = "wipe"
 
+    /** Answers [ServerMessage.FactoryReset]; a player without it is sent [ServerMessage.Released]. */
+    const val FACTORY_RESET = "factory_reset"
+
     /** Plays [MediaKind.STREAM] items. */
     const val STREAM = "stream"
 
@@ -267,6 +270,15 @@ sealed interface ServerMessage {
     data object Wipe : ServerMessage
 
     /**
+     * Sent when the owner removes the screen: everything the player stored is deleted and it forgets
+     * its owner, its token and the address it last used, then looks for a ChurchPresenter again as a
+     * new screen. It keeps its player id, so the ChurchPresenter that removed it can hold it back.
+     */
+    @Serializable
+    @SerialName("factory_reset")
+    data object FactoryReset : ServerMessage
+
+    /**
      * Updates the machine itself (Chromium, mpv, every package, the player's settings) and restarts
      * the player, when Update is pressed with no newer player to install; an [UpdateAvailable] does the
      * same before it installs the player. Answered with [PlayerMessage.UpdateProgress] for the version
@@ -339,6 +351,12 @@ enum class Platform {
     @SerialName("linux_x64") LINUX_X64,
 
     @SerialName("windows_x64") WINDOWS_X64,
+
+    /**
+     * ChurchPresenter's mobile app on an Android or Google TV. It never takes [Features.UPDATE]: its
+     * updates come from the app store, so a release has no asset for it.
+     */
+    @SerialName("android_tv") ANDROID_TV,
 }
 
 @Serializable

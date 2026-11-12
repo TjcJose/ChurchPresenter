@@ -79,6 +79,7 @@ class QATabDisplayAndControlsTest {
             waitForIdle()
             qaButton(QALabel.GO_LIVE).performClick()
             waitForIdle()
+            presenter.setPresentingMode(Presenting.QA)
             assertTrue(presenter.displayedQuestion.value != null)
 
             qaButton(QALabel.DONE_CLEAR).performClick()
@@ -96,6 +97,7 @@ class QATabDisplayAndControlsTest {
             waitForIdle()
             qaButton(QALabel.GO_LIVE).performClick()
             waitForIdle()
+            presenter.setPresentingMode(Presenting.QA)
 
             qaButton(QALabel.DELETE).performClick()
             waitForIdle()
@@ -304,11 +306,13 @@ class QATabDisplayAndControlsTest {
             waitForIdle()
             assertFalse(qa.sessionActive)
 
-            onNodeWithText("Resume (", substring = true).performClick()
+            val session = qa.sessions.single()
+            clickQaLabel(QALabel.RESUME)
+            onNodeWithText("${session.name} (1)").performClick()
             waitForIdle()
 
             assertTrue(qa.sessionActive)
-            assertTrue(qa.history.isEmpty())
+            assertTrue(qa.archived.isEmpty())
             assertTrue(showsQuestion("kept"))
         }
 
@@ -381,7 +385,7 @@ class QATabDisplayAndControlsTest {
 
             clickQaLabel(QALabel.DELETE_ALL_HISTORY)
 
-            assertTrue(qa.history.isEmpty())
+            assertTrue(qa.archived.isEmpty())
         }
 
     // ── Who asked ───────────────────────────────────────────────────────────────

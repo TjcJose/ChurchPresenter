@@ -95,7 +95,6 @@
     <string name="clear">I-clear</string>
     <string name="clear_recents">I-clear ang mga recent</string>
     <string name="recent">Recent:</string>
-    <string name="found_results">%1$d resulta ang nahanap</string>
     <string name="menu_edit">I-edit</string>
     <string name="menu_settings">Mga Setting</string>
     <string name="menu_connect">Kumonekta</string>
@@ -168,6 +167,7 @@
     <string name="submit_feature_request">Feature Request</string>
     <string name="action_ok">OK</string>
     <string name="menu_how_to_blog">How To Blog</string>
+    <string name="menu_tutorial_videos">Mga Tutorial na Video</string>
     <string name="menu_check_for_updates">Mag-check ng Update…</string>
     <string name="menu_keyboard_shortcuts">Mga Keyboard Shortcut</string>
     <string name="shortcut_category_global">Global</string>
@@ -3847,4 +3847,8 @@
     <string name="action_field_button">Button</string>
     <string name="action_field_macro">Pangalan ng macro</string>
     <string name="action_wait_seconds">%1$s s</string>
+    <string name="system_fonts_failed_title">Hindi makapagsimula ang Church Presenter sa computer na ito</string>
+    <string name="system_fonts_failed_body">Hindi ma-load ang mga system font ng computer na ito.</string>
+    <string name="system_fonts_failed_old_windows_reason">Mas luma ang bersyong ito ng Windows kaysa sa Windows 10, at ito ang pinakamalamang na dahilan.</string>
+    <string name="system_fonts_failed_old_windows_fix">Dapat itong maayos sa pag-update sa Windows 10 o mas bago.</string>
 </resources>

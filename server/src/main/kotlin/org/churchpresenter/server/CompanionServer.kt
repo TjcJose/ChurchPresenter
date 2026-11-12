@@ -85,6 +85,9 @@ private const val SHUTDOWN_TIMEOUT_MS = 2_000L
 /** The app's version, for `/api/status` and its version header, when nothing more specific is passed. */
 private const val UNKNOWN_VERSION = "dev"
 
+/** What the mDNS advert is called before a signage hub has given it the church's name. */
+private const val ADVERT_NAME = "ChurchPresenter"
+
 class CompanionServer(
     /** This build's version, reported to companions -- the app passes `BuildConfig.APP_VERSION`. */
     internal val appVersion: String = UNKNOWN_VERSION,
@@ -131,6 +134,12 @@ class CompanionServer(
         }
 
     @Volatile var qaAdminPassword: String = ""
+
+    /**
+     * Whether [qaAdminPassword] is the Q&A page's own password rather than the server API key. Its
+     * own password stands in for the desk's approval: a device that knows it is not asked about.
+     */
+    @Volatile var qaAdminPasswordTrusted: Boolean = false
 
     @Volatile var qaCooldownSeconds: Int = 30
 
@@ -431,6 +440,12 @@ class CompanionServer(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    /** Emitted when the web admin edits the displayed question. It changes the text, never what is live. */
+    val onQADisplayedEdit = MutableSharedFlow<Question>(
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
     /** Emitted when a remote client calls POST /api/clear or sends WS "clear". Clears the display instantly. */
     val onClear = MutableSharedFlow<Unit>(
         extraBufferCapacity = 4,
@@ -498,9 +513,12 @@ class CompanionServer(
             signageNudger.refresh()
         }
 
-    /** Advertised while the server runs with signage on and a signage hub. */
+    /**
+     * Advertised whenever the server runs, not only with signage on: a TV running the mobile app finds
+     * the computer this way to show a Browser Source output, which has nothing to do with signage.
+     */
     private val signageAdvert = SignageAdvert {
-        signage?.takeIf { _isRunning.value && signageEnabled }?.let { SignageAdvert.Wanted(currentPort, it.ownerName) }
+        if (_isRunning.value) SignageAdvert.Wanted(currentPort, signage?.ownerName ?: ADVERT_NAME) else null
     }
 
     /** Knocks on the away screens' last addresses at the same times. */

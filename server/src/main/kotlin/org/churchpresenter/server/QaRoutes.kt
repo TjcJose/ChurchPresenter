@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import org.churchpresenter.core.models.qa.QuestionDto
 import org.churchpresenter.core.models.qa.QuestionStatus
 import org.churchpresenter.core.models.qa.SubmitQuestionRequest
@@ -58,10 +59,12 @@ private fun Route.qaPublicRoutes(
                 // Public: session status
                 get("/api/qa/status") {
                     val qa = server.qaManager
+                    val sessionName = JsonPrimitive(qa?.sessionName.orEmpty())
                     call.respondText(
                         """{"sessionActive":${qa?.sessionActive ?: false},"cooldownSeconds":""" +
                             """${server.qaCooldownSeconds},"displayedQuestionId":""" +
-                            """"${qa?.displayedQuestion?.id ?: ""}","votingEnabled":${server.qaVotingEnabled}}""",
+                            """"${qa?.displayedQuestion?.id ?: ""}","votingEnabled":${server.qaVotingEnabled},""" +
+                            """"sessionName":$sessionName}""",
                         ContentType.Application.Json
                     )
                 }
@@ -197,7 +200,8 @@ private fun Route.qaModerationRoutes(
 ) {
                 post("/api/qa/auth") {
                     if (!server.checkQaAdmin(call)) return@post
-                    if (!server.checkQaAdminConnect(call)) return@post
+                    // The Q&A password is itself the operator's say-so; only without one is the desk asked.
+                    if (!server.qaAdminPasswordTrusted && !server.checkQaAdminConnect(call)) return@post
                     call.respondText("""{"ok":true}""", ContentType.Application.Json)
                 }
 
@@ -235,8 +239,7 @@ private fun Route.qaModerationRoutes(
                         text = question?.text ?: "",
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
                     }
@@ -275,15 +278,16 @@ private fun Route.qaQuestionEditRoutes(
                         text = request.text,
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    val allowed = pending.decision.await()
+                    val allowed = server.awaitQaAdminDecision(pending)
                     if (!allowed) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
                     }
                     val ok = server.qaManager?.editQuestion(id, request.text) ?: false
-                    if (ok) call.respondText("""{"ok":true}""", ContentType.Application.Json)
-                    else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
+                    if (ok) {
+                        server.announceDisplayedEdit(id, scope)
+                        call.respondText("""{"ok":true}""", ContentType.Application.Json)
+                    } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
 
                 // Admin: deny question
@@ -301,14 +305,14 @@ private fun Route.qaQuestionEditRoutes(
                         text = question?.text ?: "",
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
                     }
+                    val wasDisplayed = server.isDisplayedQuestion(id)
                     val ok = server.qaManager?.denyQuestion(id) ?: false
                     if (ok) {
-                        if (server.qaManager?.displayedQuestion == null) scope.launch { server.onQADisplay.emit(null) }
+                        if (wasDisplayed) scope.launch { server.onQADisplay.emit(null) }
                         call.respondText("""{"ok":true}""", ContentType.Application.Json)
                     } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
@@ -334,14 +338,14 @@ private fun Route.qaQuestionStateRoutes(
                         text = question?.text ?: "",
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
                     }
+                    val wasDisplayed = server.isDisplayedQuestion(id)
                     val ok = server.qaManager?.markDone(id) ?: false
                     if (ok) {
-                        if (server.qaManager?.displayedQuestion == null) scope.launch { server.onQADisplay.emit(null) }
+                        if (wasDisplayed) scope.launch { server.onQADisplay.emit(null) }
                         call.respondText("""{"ok":true}""", ContentType.Application.Json)
                     } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
@@ -361,8 +365,7 @@ private fun Route.qaQuestionStateRoutes(
                         text = question?.text ?: "",
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
                     }
@@ -375,11 +378,12 @@ private fun Route.qaQuestionStateRoutes(
                 }
 
                 // Admin: delete question
-    qaQuestionDeleteRoutes(server)
+    qaQuestionDeleteRoutes(server, scope)
 }
 
 private fun Route.qaQuestionDeleteRoutes(
     server: CompanionServer,
+    scope: CoroutineScope,
 ) {
                 delete("/api/qa/questions/{id}") {
                     if (!server.checkQaAdmin(call)) return@delete
@@ -395,15 +399,17 @@ private fun Route.qaQuestionDeleteRoutes(
                         text = question?.text ?: "",
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    val allowed = pending.decision.await()
+                    val allowed = server.awaitQaAdminDecision(pending)
                     if (!allowed) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@delete
                     }
+                    val wasDisplayed = server.isDisplayedQuestion(id)
                     val ok = server.qaManager?.deleteQuestion(id) ?: false
-                    if (ok) call.respondText("""{"ok":true}""", ContentType.Application.Json)
-                    else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
+                    if (ok) {
+                        if (wasDisplayed) scope.launch { server.onQADisplay.emit(null) }
+                        call.respondText("""{"ok":true}""", ContentType.Application.Json)
+                    } else call.respond(HttpStatusCode.NotFound, """{"error":"question not found"}""")
                 }
 
                 // Admin: add question (admin-created)
@@ -416,6 +422,10 @@ private fun Route.qaAdminActionRoutes(
 ) {
                 post("/api/qa/add") {
                     if (!server.checkQaAdmin(call)) return@post
+                    if (server.qaManager?.sessionActive != true) {
+                        call.respond(HttpStatusCode.Forbidden, """{"error":"Q&A session is not active"}""")
+                        return@post
+                    }
                     val body = call.receiveText()
                     val request = try {
                         json.decodeFromString(SubmitQuestionRequest.serializer(), body)
@@ -429,8 +439,7 @@ private fun Route.qaAdminActionRoutes(
                         text = request.text,
                         clientId = clientId
                     )
-                    server.onQAAdminRequest.emit(pending)
-                    val allowed = pending.decision.await()
+                    val allowed = server.awaitQaAdminDecision(pending)
                     if (!allowed) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied by operator"}""")
                         return@post
@@ -451,8 +460,7 @@ private fun Route.qaAdminActionRoutes(
                     if (!server.checkQaAdmin(call)) return@post
                     val clientId = call.request.headers["X-Device-Id"] ?: ""
                     val pending = CompanionServer.PendingQAAdminRequest(action = "clear-display", clientId = clientId)
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied"}""")
                         return@post
                     }
@@ -466,12 +474,21 @@ private fun Route.qaAdminActionRoutes(
                     if (!server.checkQaAdmin(call)) return@post
                     val clientId = call.request.headers["X-Device-Id"] ?: ""
                     val pending = CompanionServer.PendingQAAdminRequest(action = "clear-all", clientId = clientId)
-                    server.onQAAdminRequest.emit(pending)
-                    if (!pending.decision.await()) {
+                    if (!server.awaitQaAdminDecision(pending)) {
                         call.respond(HttpStatusCode.Forbidden, """{"error":"denied"}""")
                         return@post
                     }
                     server.qaManager?.clearAll()
+                    scope.launch { server.onQADisplay.emit(null) }
                     call.respondText("""{"ok":true}""", ContentType.Application.Json)
                 }
+}
+
+/** Whether [id] is the question on display: only taking that one down clears the output. */
+private fun CompanionServer.isDisplayedQuestion(id: String): Boolean = qaManager?.displayedQuestion?.id == id
+
+/** Sends the output the new text of [id] if it is the question on display. */
+private fun CompanionServer.announceDisplayedEdit(id: String, scope: CoroutineScope) {
+    val edited = qaManager?.displayedQuestion?.takeIf { it.id == id } ?: return
+    scope.launch { onQADisplayedEdit.emit(edited) }
 }

@@ -338,7 +338,7 @@ internal fun SingleDisplayPreview(
         // Instead, WebTab pushes a snapshot bitmap every 200ms via PresenterManager
         // so this panel shows a pixel-accurate mirror including scroll position.
         if (profile.displayMode != Constants.DISPLAY_MODE_STAGE_MONITOR && effectiveMode == Presenting.WEBSITE) {
-            PreviewWebsiteMirror(presenterManager)
+            PreviewWebsiteMirror(presenterManager, profile)
             // What goes up over the page, which its snapshot does not carry: drawn alone, with no
             // screen of its own to hide the page under it.
             ScaledPresenterContent(output = outputSize) {
@@ -362,6 +362,8 @@ internal fun SingleDisplayPreview(
             mediaAudible = mediaViewModel != null && mediaViewModel.isLoaded && mediaViewModel.isPlaying,
             lockable = busRole != BusRole.PREVIEW,
             bottomInset = if (profileLabelShown) PROFILE_LABEL_CLEARANCE else 0.dp,
+            holdMenu = screenHoldMenu(presenterManager, screenIndex)
+                .takeIf { outputKind == OutputKind.SCREEN && busRole != BusRole.PREVIEW },
         )
         if (profileLabelShown) PreviewProfileLabel(profiles, rawAssignment.activeProfileId)
         }
