@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.ComposeUiTest
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -42,6 +43,7 @@ import org.churchpresenter.profiles.TestSingletons
 import org.churchpresenter.sharedui.composables.LocalFontPreviewFace
 import org.churchpresenter.profiles.ADJUST_REFERENCE_TAG
 import org.churchpresenter.profiles.ADJUST_SWITCH_TAG
+import org.churchpresenter.profiles.TITLE_SLIDE_BACKGROUND_TAG
 import org.churchpresenter.profiles.toggleCheckbox
 import org.churchpresenter.profiles.PreviewBackgroundMode
 import org.churchpresenter.profiles.previewBackgroundTag
@@ -151,6 +153,14 @@ class ProfilesTabScreenshotTest {
 
     @Test
     fun `the Songs tab`() = shoot("style_songs") { tab(CustomizePane.SONGS) }
+
+    /** The lyrics' voice colours: the second voice's row and the third voice's under it. */
+    @Test
+    fun `the Songs tab's voice colour rows`() = shoot("songs_voice_colors") {
+        tab(CustomizePane.SONGS)
+        onNodeWithText("a second group answering", substring = true).performScrollTo()
+        waitForIdle()
+    }
 
     @Test
     fun `the Background tab`() = shoot("style_background") { tab(CustomizePane.BACKGROUND) }
@@ -290,6 +300,25 @@ class ProfilesTabScreenshotTest {
             profilesFoldedGroups = mapOf(railTag(CustomizePane.SONGS.name) to setOf("background", "text")),
         ),
     ) { tab(CustomizePane.SONGS) }
+
+    /** The title slide on, drawn over no background (#1016): the Slides group's own rows. */
+    @Test
+    fun `the title slide set to no background`() = shoot(
+        "songs_title_slide_no_background",
+        settings = library().copy(
+            profilesFoldedGroups = mapOf(
+                railTag(CustomizePane.SONGS.name) to setOf("background", "text", "languages"),
+            ),
+        ),
+    ) {
+        tab(CustomizePane.SONGS)
+        waitForIdle()
+        onNodeWithTag("song_titleSlideEnabled").performClick()
+        waitForIdle()
+        onNode(hasTextExactly("None") and hasAnyAncestor(hasTestTag(TITLE_SLIDE_BACKGROUND_TAG)))
+            .performScrollTo()
+            .performClick()
+    }
 
     // ── Adjust on preview ───────────────────────────────────────────────────────────────────────
 

@@ -21,6 +21,8 @@ data class LyricSection(
     val labelName: String = "",
     val title: String = "",
     val songNumber: Int = 0,
+    /** [SongItem.alias]: shown in place of [songNumber] when not blank. See [shownNumber]. */
+    val alias: String = "",
     /**
      * The song's credits, for a title slide to draw -- carried for the same reason [bpm], [capo]
      * and [background] are: the presenter is handed a section, never the [SongItem] it came from.
@@ -36,7 +38,7 @@ data class LyricSection(
      *
      * A list rather than the single `secondaryLines` it replaced, because a song may be sung in up
      * to [MAX_SONG_TRANSLATIONS] languages at once. Position `n` here is language `n + 1` of
-     * [SongItem.translationList], which is what an output's `songTranslations` indexes into — so a
+     * [SongItem.translationList], the slot an output's places resolve to — so a
      * language the song does not have is a gap in the list, never a shifted entry.
      */
     val translations: List<SectionTranslation> = emptyList(),
@@ -96,7 +98,7 @@ data class LyricSection(
     val secondaryTitle: String get() = translations.firstOrNull()?.title.orEmpty()
     val secondaryLines: List<String> get() = translations.firstOrNull()?.lines ?: emptyList()
 
-    /** This slide in every language, the primary first — the order `songTranslations` indexes. */
+    /** This slide in every language, the primary first — indexed by slot, as `songLanguagePicks` gives them. */
     fun allLanguageLines(): List<List<String>> = listOf(lines) + translations.map { it.lines }
 
     /** The title in every language, the primary first, aligned with [allLanguageLines]. */
@@ -115,6 +117,15 @@ fun LyricSection.withBackgroundsOf(song: SongItem): LyricSection = copy(
     background = if (background.isCustom) background else song.background,
     lowerThirdBackground = if (lowerThirdBackground.isCustom) lowerThirdBackground else song.lowerThirdBackground,
 )
+
+/** Stamps [song]'s alias onto this section, since the presenter only ever sees a section. */
+fun LyricSection.withAliasOf(song: SongItem): LyricSection = copy(alias = song.alias)
+
+/**
+ * What the output draws as this song's number: the song's [LyricSection.alias] when it has one,
+ * otherwise [LyricSection.songNumber], or null when there is neither.
+ */
+fun LyricSection.shownNumber(): String? = alias.trim().ifEmpty { songNumber.takeIf { it > 0 }?.toString() }
 
 /** [section] with [song]'s own font, size and colours, so the presenter can draw them. */
 fun LyricSection.withTextOverridesOf(song: SongItem): LyricSection = copy(textOverrides = song.textOverrides)

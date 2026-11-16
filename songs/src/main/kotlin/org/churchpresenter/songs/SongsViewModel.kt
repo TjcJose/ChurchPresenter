@@ -2,6 +2,7 @@ package org.churchpresenter.songs
 
 import org.churchpresenter.core.models.schedule.ScheduleItem
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -107,10 +108,16 @@ class SongsViewModel(
         favoritesState.value = emptySet()
     }
 
-    fun getFavoriteSongs(): List<SongItem> {
+    /**
+     * The favourite songs, worked out again only when the library or the favourites change -- not on
+     * every recomposition of the Songs tab, which walked the whole library each time.
+     */
+    private val favoriteSongsState = derivedStateOf {
         val favIds = favoritesState.value
-        return allSongItemsState.value.filter { it.songId in favIds }
+        if (favIds.isEmpty()) emptyList() else allSongItemsState.value.filter { it.songId in favIds }
     }
+
+    fun getFavoriteSongs(): List<SongItem> = favoriteSongsState.value
 
     // Statistics — used for play-count sorting
     internal var playCounts: SongPlayCounts? = null
@@ -206,8 +213,10 @@ class SongsViewModel(
             isLoadingState.value = true
             val storageDir = appSettings.songSettings.storageDirectory
             try {
-                // Phase 1: Try loading from cache for instant display
-                if (storageDir.isNotEmpty()) {
+                // Phase 1: the cache, for instant display at startup -- only while nothing is shown.
+                // On a reload the cache is older than what is on screen, and showing it put an
+                // edit's old text back until the folder had been read again.
+                if (storageDir.isNotEmpty() && allSongItemsState.value.isEmpty()) {
                     val cached = withContext(ioDispatcher) {
                         SongFileParser.loadSongCache(storageDir)
                     }

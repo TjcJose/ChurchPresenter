@@ -15,9 +15,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
+import org.churchpresenter.helper.suggest.SuggestionIds
 import org.churchpresenter.settings.HelperSettings
 import org.churchpresenter.sharedui.models.Presenting
 import java.util.concurrent.Executor
+import java.io.File
+import java.nio.file.Files
+import org.churchpresenter.settings.SettingsManager
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,17 +34,24 @@ class WickLampTest {
     // Launched work is never run: nothing here reaches the network.
     private val scope = CoroutineScope(SupervisorJob() + Executor { }.asCoroutineDispatcher())
 
+    // Settings of its own: what Wick suggests follows the saved settings (a finished setup wizard
+    // lets suggestions in), and the shared app data folder takes other tests' background saves.
+    private val settingsDir: File = Files.createTempDirectory("wick-lamp").toFile()
+
     private val root = AppRootState(
         object : ApplicationScope {
             override fun exitApplication() = Unit
         },
         scope,
         secondaryDisplays = { emptyList() },
+        SettingsManager(settingsDir),
     )
 
     @AfterTest
     fun tearDown() {
         scope.cancel()
+        SettingsManager.flushAllSaves()
+        settingsDir.deleteRecursively()
     }
 
     /** Past the panel's open and close animations, with the clock held. */
@@ -51,7 +62,17 @@ class WickLampTest {
 
     @Test
     fun `the lamp opens Wick, and putting it away from the panel hides it`() = runComposeUiTest {
-        root.appSettings = root.appSettings.copy(helper = HelperSettings(tipsEnabled = false, startedByUser = true))
+        // No suggestion card either: whether one applies depends on what earlier tests left on disk.
+        val noSuggestions = setOf(
+            SuggestionIds.NO_AUDIENCE,
+            SuggestionIds.OUTPUTS_HIDDEN,
+            SuggestionIds.BIBLE_NONE,
+            SuggestionIds.SONGS_EMPTY,
+            SuggestionIds.SCHEDULE_EMPTY,
+        )
+        root.appSettings = root.appSettings.copy(
+            helper = HelperSettings(tipsEnabled = false, startedByUser = true, dismissedSuggestions = noSuggestions),
+        )
         // The lamp flickers for ever: with the clock held, idle means nothing left to compose.
         mainClock.autoAdvance = false
         setContent { MaterialTheme { root.WickLamp(Modifier, devices = emptyArray()) } }

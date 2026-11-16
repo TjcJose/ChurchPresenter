@@ -1,7 +1,6 @@
 package org.churchpresenter.presenter
 
-import org.churchpresenter.sharedui.utils.Utils.parseHexColor
-import androidx.compose.ui.graphics.Color
+import org.churchpresenter.sharedui.utils.VoiceColors
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import org.churchpresenter.settings.utils.bilingualGrid
 import org.churchpresenter.sharedui.composables.TextBlockBackdrop
 import org.churchpresenter.sharedui.presenter.BoxMargins
 import org.churchpresenter.sharedui.presenter.textBoxArea
+import org.churchpresenter.core.models.songs.shownNumber
 
 /**
  * One slide of a song as the frame draws it: which lines of which languages, the chart rows, and
@@ -47,6 +47,7 @@ internal class SongSlide(
     val isKey get() = frame.isKey
     val ss get() = frame.ss
     val activeLanguages get() = frame.activeLanguages
+    fun lookOf(slot: Int): Int = frame.lookOf(slot)
     val laFontSize get() = frame.laFontSize
     val laBold get() = frame.laBold
     val laItalic get() = frame.laItalic
@@ -71,8 +72,8 @@ internal class SongSlide(
     val titleColor get() = frame.titleColor
     val lyricsColor get() = frame.lyricsColor
 
-    /** The second voice's colour on the lyrics — none on a key, which is a matte drawn all white. */
-    val secondVoiceColor: Color? get() = if (isKey) null else parseHexColor(ss.layoutExtras.secondVoiceColor)
+    /** The other voices' colours on the lyrics — none on a key, which is a matte drawn all white. */
+    val voiceColors: VoiceColors? get() = if (isKey) null else ss.layoutExtras.voiceColors()
     val chordColor get() = frame.chordColor
     val laColor get() = frame.laColor
     val laFontFamily get() = frame.laFontFamily
@@ -122,11 +123,11 @@ internal class SongSlide(
             !titleBoxed
     val shouldShowSongNumber =
         shouldShowText(numberDisplay, section, allLyricSections, displaySectionIndex) &&
-            section.songNumber > 0 && !isTitleSlide && !numberBoxed
+            section.shownNumber() != null && !isTitleSlide && !numberBoxed
 
     // "Configured" means not set to "None" — title/number could appear on some slides
     val titleConfigured = titleDisplay != Constants.NONE && !titleBoxed
-    val numberConfigured = numberDisplay != Constants.NONE && section.songNumber > 0 && !numberBoxed
+    val numberConfigured = numberDisplay != Constants.NONE && section.shownNumber() != null && !numberBoxed
     val effectiveTitlePosition = if (isLowerThird) ss.titleLowerThirdPosition else ss.titlePosition
     val effectiveSongNumberPosition = if (isLowerThird) ss.songNumberLowerThirdPosition else ss.songNumberPosition
 
@@ -186,12 +187,11 @@ internal class SongSlide(
 
     // The languages laid out here: a language whose lyrics are boxed is drawn in its
     // box instead, and one whose next section is boxed keeps only its lyrics here.
-    val boxLyricsElement =
-        if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS
+    val boxLyricsElement = SongStyleElement.LYRICS
     val languageBlocks = slideBlocks
-        .filterNot { ss.isBoxed(boxLyricsElement, isLowerThird, it.index) }
+        .filterNot { ss.isBoxed(boxLyricsElement, isLowerThird, lookOf(it.index)) }
         .map { block ->
-            if (ss.isBoxed(SongStyleElement.NEXT_SECTION, isLowerThird, block.index)) {
+            if (ss.isBoxed(SongStyleElement.NEXT_SECTION, isLowerThird, lookOf(block.index))) {
                 block.copy(lookAheadLines = emptyList())
             } else {
                 block
@@ -234,7 +234,7 @@ internal class SongSlide(
     // The title is drawn in the leading language's own title profile once that
     // language has a look of its own, and in the primary's otherwise -- the same
     // rule the lyric lines follow.
-    val titleLanguage = slideBlocks.firstOrNull()?.index ?: 0
+    val titleLanguage = lookOf(slideBlocks.firstOrNull()?.index ?: 0)
     val titleOwnStyling = if (ss.languageOverridesStyle(titleLanguage)) {
         songLineStyling(
             profile = ss.elementStyle(SongStyleElement.TITLE, songTarget, titleLanguage),
@@ -311,15 +311,18 @@ internal class SongSlide(
         fontSize = scaledLaFontSize,
         textStyle = lookAheadTextStyle,
     )
-    val lyricsElement = if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS
-    val languageLyricStyling = List(MAX_SONG_TRANSLATIONS) { language ->
+    val lyricsElement = SongStyleElement.LYRICS
+
+    // Indexed by the language drawn, styled by the look it is drawn with (`lookOf`).
+    val languageLyricStyling = List(MAX_SONG_TRANSLATIONS) { slot ->
+        val language = lookOf(slot)
         if (languageFitSizes.isNotEmpty()) {
             // Fitted one by one: every language at its own size, its own Auto-fit
             // switch deciding whether it takes it.
             val look = ss.elementStyle(lyricsElement, songTarget, language)
             songLineStyling(
                 profile = look,
-                autoFitFontSize = languageFitSizes[language]?.takeIf { look.autoFit },
+                autoFitFontSize = languageFitSizes[slot]?.takeIf { look.autoFit },
                 scaleFactor = scaleFactor,
                 isKey = isKey,
                 shadowOf = this::scaleElementShadow,
@@ -333,11 +336,12 @@ internal class SongSlide(
             shadowOf = this::scaleElementShadow,
         )
     }
-    val languageLaStyling = List(MAX_SONG_TRANSLATIONS) { language ->
+    val languageLaStyling = List(MAX_SONG_TRANSLATIONS) { slot ->
+        val language = lookOf(slot)
         if (languageFitSizes.isNotEmpty()) {
             songLineStyling(
                 profile = ss.elementStyle(SongStyleElement.NEXT_SECTION, songTarget, language),
-                autoFitFontSize = languageFitSizes[language]?.takeIf { laAutoFitEnabled },
+                autoFitFontSize = languageFitSizes[slot]?.takeIf { laAutoFitEnabled },
                 scaleFactor = scaleFactor,
                 isKey = isKey,
                 shadowOf = this::scaleElementShadow,
@@ -389,6 +393,7 @@ internal fun SongFrame.TextContent(section: LyricSection, lineIndex: Int, innerM
                 settings = ss,
                 target = songTarget,
                 languages = activeLanguages,
+                lookOf = ::lookOf,
                 isKey = isKey,
                 scaleFactor = scaleFactor,
                 contentAlignment = if (isLowerThird) {
@@ -476,12 +481,13 @@ internal fun SongFrame.SlideBoxes(section: LyricSection, lineIndex: Int, alpha: 
         ?.takeIf { it.isNotEmpty() }
         ?: section.title
     val items = if (isTitleSlide) {
-        titleSlideBoxItems(ss, isLowerThird, titleSlideLines(section, ss, activeLanguages))
+        titleSlideBoxItems(ss, isLowerThird, titleSlideLines(section, ss, activeLanguages, ::lookOf))
     } else {
         songBoxItems(
             settings = ss,
             lowerThird = isLowerThird,
-            lyricsElement = if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS,
+            lyricsElement = SongStyleElement.LYRICS,
+            lookOf = ::lookOf,
             slide = SongBoxSlide(
                 blocks = blocks,
                 songBlocks = songBlocks,
@@ -489,9 +495,9 @@ internal fun SongFrame.SlideBoxes(section: LyricSection, lineIndex: Int, alpha: 
                 title = titleText.takeIf {
                     shouldShowText(titleDisplay, section, allLyricSections, displaySectionIndex)
                 },
-                number = section.songNumber.takeIf {
-                    it > 0 && shouldShowText(numberDisplay, section, allLyricSections, displaySectionIndex)
-                }?.toString(),
+                number = section.shownNumber()?.takeIf {
+                    shouldShowText(numberDisplay, section, allLyricSections, displaySectionIndex)
+                },
                     label = sectionLabelText(section, ss.layoutExtras.sectionLabel, isTitleSlide = false),
                 ),
             ),

@@ -62,6 +62,17 @@ data class SongLayoutExtras(
     val autoFitEachSlide: Boolean = false,
     /** [autoFitEachSlide] for the lower third. */
     val autoFitEachSlideLowerThird: Boolean = false,
+    /**
+     * Whether each language's look stays with its place in the Songs tab's display order (true, the
+     * default) or goes with the language (false).
+     *
+     * A profile names the places it shows, not the languages (`songLanguagePicks`), so moving
+     * Yoruba to the top puts Yoruba on every output showing the first place. Following the place,
+     * it is drawn there with the first place's look -- the look stored as language 1 -- just as a
+     * Bible translation takes its place's look ([BibleSettings.looksFollowPosition]). Following the
+     * language, it keeps its own. Read at draw time, so no stored look ever moves.
+     */
+    val languageLooksFollowPlace: Boolean = true,
     /** The All look of a song's languages, where the first language has values of its own -- see [SongAllLanguages]. */
     val allLanguages: SongAllLanguages = SongAllLanguages(),
     /**
@@ -106,6 +117,11 @@ data class SongLayoutExtras(
      */
     val secondVoiceColor: String = DEFAULT_SECOND_VOICE_COLOR,
     /**
+     * The colour a song's third voice is drawn in -- the lines and words written `3>` and `3>(…)`,
+     * a second group answering, as in a liturgy. A song's own `voice3:` wins over it.
+     */
+    val thirdVoiceColor: String = DEFAULT_THIRD_VOICE_COLOR,
+    /**
      * The Lottie template the full-screen title slide plays instead of drawing its number, title and
      * credits itself; empty, or a file that is gone, draws the title slide as it always was. The
      * template fills its `TextN` layers with the number and title and its `ReferenceN` layers with
@@ -114,6 +130,15 @@ data class SongLayoutExtras(
     val titleSlideLottie: String = "",
     /** [titleSlideLottie] for the lower third: played in the band's place while the title slide is up. */
     val titleSlideLottieLowerThird: String = "",
+    /**
+     * What the full-screen title slide is drawn over: [Constants.TITLE_SLIDE_BACKGROUND_SONG], the
+     * song's background as every other slide has it, or [Constants.TITLE_SLIDE_BACKGROUND_NONE] --
+     * nothing, so the number and credits sit over whatever is behind the output (#1016). The quick
+     * tray's live pick still wins over None.
+     */
+    val titleSlideBackground: String = Constants.TITLE_SLIDE_BACKGROUND_SONG,
+    /** [titleSlideBackground] for the lower third: None draws no band under the title slide. */
+    val titleSlideBackgroundLowerThird: String = Constants.TITLE_SLIDE_BACKGROUND_SONG,
 )
 
 /** The Lottie template the title slide plays on this output, or empty to draw it as it always was. */
@@ -129,8 +154,28 @@ fun SongSettings.withTitleSlideLottie(lowerThird: Boolean, path: String): SongSe
     },
 )
 
+/** What the title slide is drawn over on this output -- see [SongLayoutExtras.titleSlideBackground]. */
+fun SongSettings.titleSlideBackground(lowerThird: Boolean): String =
+    if (lowerThird) layoutExtras.titleSlideBackgroundLowerThird else layoutExtras.titleSlideBackground
+
+/** Whether the title slide is drawn over no background on this output. */
+fun SongSettings.titleSlideHidesBackground(lowerThird: Boolean): Boolean =
+    titleSlideBackground(lowerThird) == Constants.TITLE_SLIDE_BACKGROUND_NONE
+
+/** These settings with [value] as what the title slide is drawn over on this output. */
+fun SongSettings.withTitleSlideBackground(lowerThird: Boolean, value: String): SongSettings = copy(
+    layoutExtras = if (lowerThird) {
+        layoutExtras.copy(titleSlideBackgroundLowerThird = value)
+    } else {
+        layoutExtras.copy(titleSlideBackground = value)
+    },
+)
+
 /** The second voice's colour until a profile picks its own: a warm yellow that reads on dark and light. */
 const val DEFAULT_SECOND_VOICE_COLOR = "#FFD43B"
+
+/** The third voice's colour until a profile picks its own: a fresh green, set apart from the yellow. */
+const val DEFAULT_THIRD_VOICE_COLOR = "#69DB7C"
 
 /** The space between stacked languages while [SongLayoutExtras.languageGap] is not set. */
 const val DEFAULT_STACKED_LANGUAGE_GAP = 12

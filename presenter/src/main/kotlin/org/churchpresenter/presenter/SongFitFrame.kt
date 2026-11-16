@@ -21,6 +21,7 @@ import org.churchpresenter.settings.stackedLanguageGap
 import org.churchpresenter.settings.utils.Constants
 import org.churchpresenter.settings.utils.bilingualGrid
 import androidx.compose.ui.text.TextMeasurer
+import org.churchpresenter.core.models.songs.shownNumber
 
 /*
  * The song's auto-fit: the largest lyric size at which every slide (or, slide by slide, the one on
@@ -58,9 +59,9 @@ private fun SongLook.songFitFrame(maxWidth: Dp, maxHeight: Dp, scaleFactor: Floa
     // How many blocks the frame is actually divided into. One language fills it; more
     // split it, in whichever direction the layout says.
     // A language whose lyrics have a box of their own is fitted in it, not here.
-    val fitLyricsElement = if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS
+    val fitLyricsElement = SongStyleElement.LYRICS
     val drawnLanguages = activeLanguages
-        .count { !ss.isBoxed(fitLyricsElement, isLowerThird, it) }
+        .count { !ss.isBoxed(fitLyricsElement, isLowerThird, lookOf(it)) }
         .coerceAtLeast(1)
     // [bilingualLayout]'s value as the grid it lays blocks out in. A row (1 × N) or a
     // column (N × 1) still divides by however many languages are actually drawn, exactly
@@ -247,9 +248,8 @@ private fun SongLook.reservedNumberHeight(autoFitTextMeasurer: TextMeasurer, ref
         !ss.isBoxed(SongStyleElement.NUMBER, isLowerThird)
     ) {
         val numStyle = TextStyle(fontSize = fitNumberFontSize.sp, fontFamily = titleFontFamily)
-        val maxNum = allLyricSections.maxOfOrNull { it.songNumber } ?: 0
-        if (maxNum > 0) {
-            reserved += autoFitTextMeasurer.measure(maxNum.toString(), numStyle, density = referenceDensity).size.height
+        allLyricSections.firstNotNullOfOrNull { it.shownNumber() }?.let { number ->
+            reserved += autoFitTextMeasurer.measure(number, numStyle, density = referenceDensity).size.height
         }
     }
     return reserved
@@ -267,7 +267,7 @@ private fun SongLook.fitSections(
     val drawnLanguages = fitFrame.drawnLanguages
     val refWidth = fitFrame.refWidth
     val refHeight = fitFrame.refHeight
-    val fitLyricsElement = if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS
+    val fitLyricsElement = SongStyleElement.LYRICS
     // The same tracking the lines are drawn with. Spacing is stored in pixels against
     // the profile's own font size and converted to `em`, so the value does not change
     // as the search tries sizes -- it scales with whichever one it settles on, exactly
@@ -295,7 +295,7 @@ private fun SongLook.fitSections(
         null
     }
     // Languages boxed on their own are fitted in their boxes; the rest share the frame.
-    val boxedLanguages = activeLanguages.filter { ss.isBoxed(fitLyricsElement, isLowerThird, it) }.toSet()
+    val boxedLanguages = activeLanguages.filter { ss.isBoxed(fitLyricsElement, isLowerThird, lookOf(it)) }.toSet()
     val fitSections = (slideFit?.sections ?: sectionsForFit).let { sections ->
         if (boxedLanguages.isEmpty()) sections else sections.map { it.withoutLanguages(boxedLanguages) }
     }
@@ -320,9 +320,8 @@ private fun SongLook.fitSections(
     )
     // Each language on its own: its own lines, in its own font, in the same room.
     val perLanguage = if (ss.layoutExtras.fitLanguagesSeparately && drawnLanguages > 1) {
-        val fitElement = if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS
-        activeLanguages.associateWith { language ->
-            val look = ss.elementStyle(fitElement, songTarget, language)
+                activeLanguages.associateWith { language ->
+            val look = ss.elementStyle(SongStyleElement.LYRICS, songTarget, lookOf(language))
             val letterEm = spacingEm(look.letterSpacing, look.fontSize)
             val wordEm = spacingEm(look.wordSpacing, look.fontSize)
             calculateAutoFitForAllSections(

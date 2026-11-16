@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import org.churchpresenter.sharedui.composables.OutlinedText
 import org.churchpresenter.sharedui.utils.spacingEm
-import org.churchpresenter.sharedui.utils.Utils.parseHexColor
 import org.churchpresenter.sharedui.utils.voicedDisplayText
 import org.churchpresenter.core.models.text.TextOutline
 import org.churchpresenter.settings.SongSettings
@@ -33,8 +32,7 @@ import org.churchpresenter.sharedui.presenter.rectIn
 
 /** The song elements drawn once per language, and so boxed once per language unless they share a box. */
 val SongStyleElement.boxedPerLanguage: Boolean
-    get() = this == SongStyleElement.LYRICS || this == SongStyleElement.LOOK_AHEAD ||
-        this == SongStyleElement.NEXT_SECTION
+    get() = this == SongStyleElement.LYRICS || this == SongStyleElement.NEXT_SECTION
 
 /**
  * The key [element]'s box is stored under on [lowerThird]'s output -- with [language] for an element
@@ -140,12 +138,16 @@ internal data class SongBoxSlide(
     val texts: SongBoxTexts,
 )
 
-/** What [slide] draws in boxes: every boxed element that has something to show on it. */
+/**
+ * What [slide] draws in boxes: every boxed element that has something to show on it. A language's
+ * box is the one of the look it is drawn with ([lookOf]); its lines are matched by the language.
+ */
 internal fun songBoxItems(
     settings: SongSettings,
     lowerThird: Boolean,
     lyricsElement: SongStyleElement,
     slide: SongBoxSlide,
+    lookOf: (Int) -> Int = { it },
 ): List<SongBoxItem> {
     val blocks = slide.blocks
     val songBlocks = slide.songBlocks
@@ -173,14 +175,15 @@ internal fun songBoxItems(
             return
         }
         blocks.forEach { block ->
-            val box = settings.songBox(element, lowerThird, block.index)
+            val look = lookOf(block.index)
+            val box = settings.songBox(element, lowerThird, look)
             val lines = linesOf(block)
             if (box.enabled && lines.isNotEmpty()) {
                 val fit = songBlocks
                     .mapNotNull { slide -> slide.firstOrNull { it.index == block.index }?.let(linesOf) }
                     .filter { it.isNotEmpty() }
-                val key = settings.songBoxKey(element, lowerThird, block.index)
-                items += SongBoxItem(key, box, element, block.index, lines, fit)
+                val key = settings.songBoxKey(element, lowerThird, look)
+                items += SongBoxItem(key, box, element, look, lines, fit)
             }
         }
     }
@@ -257,10 +260,10 @@ internal fun SongBoxLayer(
                 OutlinedText(
                     text = voicedDisplayText(
                         item.lines, profile.transform, letterEm, wordEm,
-                        secondVoiceColor = if (isKey || item.element != SongStyleElement.LYRICS) {
+                        voiceColors = if (isKey || item.element != SongStyleElement.LYRICS) {
                             null
                         } else {
-                            parseHexColor(settings.layoutExtras.secondVoiceColor)
+                            settings.layoutExtras.voiceColors()
                         },
                     ),
                     outline = outlineOf(profile.outline),

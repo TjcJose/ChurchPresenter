@@ -45,13 +45,20 @@ data class SongItem(
      * what a newer build or the converter put there (`copyright:`, say).
      */
     val extraHeader: Map<String, String> = emptyMap(),
+    /**
+     * What the output shows where the song number goes -- "Ch 25", "A12" -- or blank to show
+     * [number]. Free text, one per song, written as the `alias:` header line. Display only: the
+     * song is still identified, sorted and searched by [number].
+     */
+    val alias: String = "",
 ) {
     /** Stable unique ID across songbooks: "songbook::number" or "songbook::title" when no number */
     val songId: String get() = if (number.isNotBlank()) "$songbook::$number" else "$songbook::$title"
 
     /**
      * Every language this song carries, the primary first, so a caller that treats them alike can
-     * index straight into it. Position `n` here is what an output's `songTranslations` names.
+     * index straight into it. Position `n` here is the slot an output's places resolve to
+     * (`songLanguagePicks`), and the language name and look stored as language `n + 1`.
      */
     fun translationList(): List<SongTranslation> =
         listOf(SongTranslation(title = title, lyrics = lyrics)) + extraTranslations()
@@ -96,9 +103,9 @@ data class SongItem(
      */
     fun withTranslations(value: List<SongTranslation>): SongItem {
         // Trailing blanks are dropped, interior ones kept. A gap is meaningful — a song written in
-        // languages 1 and 4 must keep the fourth *at* position four, because that is the position
-        // an output's `songTranslations` names. Dropping empties outright would slide it to two and
-        // silently repoint every screen configured to show it.
+        // languages 1 and 4 must keep the fourth *at* position four, because that is the slot its
+        // name and its place in the display order are stored by. Dropping empties outright would
+        // slide it to two and silently make it another language.
         val cleaned = value.dropLastWhile { it.isEmpty }.take(MAX_SONG_EXTRA_TRANSLATIONS)
         return copy(
             translations = cleaned,

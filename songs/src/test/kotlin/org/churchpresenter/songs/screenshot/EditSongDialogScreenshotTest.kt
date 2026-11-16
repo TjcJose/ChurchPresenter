@@ -83,7 +83,6 @@ class EditSongDialogScreenshotTest {
                                 chordsVisible = chordsVisible,
                                 onChordsVisibleChange = {},
                                 languageNames = languageNames.orEmpty(),
-                                onLanguageNamesChange = if (languageNames != null) ({}) else null,
                                 appSettings = appSettings,
                                 onDismiss = {},
                                 onSave = { _, _ -> },
@@ -107,9 +106,10 @@ class EditSongDialogScreenshotTest {
     @Test
     fun `a brand new song`() = shoot("new_song", song = blankSong(), isNewSong = true)
 
-    /** Every field a song can carry — author, composer, CCLI number, tune. */
+    /** Every field a song can carry — alias, author, composer, CCLI number, tune. */
     @Test
-    fun `a song filled in as completely as it can be`() = shoot("fully_filled")
+    fun `a song filled in as completely as it can be`() =
+        shoot("fully_filled", song = amazingGrace().copy(alias = "H 42"))
 
     /** Chords in the lyrics, previewed beside them and coloured by section. */
     @Test
@@ -211,6 +211,26 @@ class EditSongDialogScreenshotTest {
     /** `2>` lines, `2>(…)` words and a `[voice: 2]` block, tinted in the lyrics box. */
     @Test
     fun `a song with a second voice`() = shoot("second_voice", song = secondVoice())
+
+    /** A liturgy with `3>` answers beside `2>` ones, each voice tinted in its own ink. */
+    @Test
+    fun `a song with a third voice`() = shoot("third_voice", song = thirdVoice())
+
+    /** A line at a time on a liturgy: the question with both its voice-2 and voice-3 answers. */
+    @Test
+    fun `the output of a third voice a line at a time`() =
+        shoot("third_voice_output", song = thirdVoice(), appSettings = OUTPUTS) {
+            onNodeWithText("1 Line").performClick()
+            waitForIdle()
+        }
+
+    /** Lines and words in colours of their own, the Color… button beside the voices, the slide in 1 Line. */
+    @Test
+    fun `a song with colours of its own`() =
+        shoot("colored_lines", song = wedding(), appSettings = OUTPUTS) {
+            onNodeWithText("1 Line").performClick()
+            waitForIdle()
+        }
 
     /** The Output tab a verse at a time: the slide under the cursor on full screen and on the band. */
     @Test
@@ -349,6 +369,34 @@ class EditSongDialogScreenshotTest {
             "Praise the Lord, praise the Lord",
             "[voice: 2]",
             "Let the earth hear His voice",
+        ),
+    )
+
+    private fun thirdVoice() = amazingGrace().copy(
+        title = "Liturgy",
+        lyrics = listOf(
+            "[Verse 1]",
+            "The Lord be with you.",
+            "2>And also with you.",
+            "3>Lift up your hearts.",
+            "Lord, have mercy. 2>(Christ, have mercy.) 3>(Lord, have mercy.)",
+            "",
+            "[Verse 2]",
+            "[voice: 3]",
+            "Amen. Amen.",
+        ),
+    )
+
+    private fun wedding() = amazingGrace().copy(
+        title = "Wedding vows",
+        lyrics = listOf(
+            "[Verse 1]",
+            "Ben, will you take Anna to be your wife?",
+            "#4DABF7>I will.",
+            "#F783AC>I, Anna, take you, Ben,",
+            "Will you all support them? 2>(We will.)",
+            "[color: #F783AC]",
+            "I give you this ring.",
         ),
     )
 

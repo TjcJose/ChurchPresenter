@@ -348,9 +348,10 @@ a song with no number). Optional query params: `songbook=` narrows to one songbo
 matches by title (any case), and `id=N` looks the song up by its index in the library instead.
 `404 {"error":"song not found"}` when nothing matches.
 
-The `lines` are the words as sung: a song's second-voice markup (`2>`, `2>(…)`) and its directives
-(`[voice: 2]`, `[background: …]`) are taken out. `markup=true` sends the lines as the song file
-writes them instead, which is what an Instance Link follower asks for.
+The `lines` are the words as sung: a song's voice markup (`2>`, `2>(…)`, `3>`, `3>(…)`,
+`#E91E63>`, `#E91E63>(…)`) and its directives (`[voice: 2]`, `[voice: 3]`, `[color: #E91E63]`,
+`[background: …]`) are taken out. `markup=true` sends the lines as the song file writes them
+instead, which is what an Instance Link follower asks for.
 
 ```bash
 curl -k https://192.168.1.10:8765/api/songs/42
@@ -1687,7 +1688,7 @@ also as `schedule_updated`.
 | `presentation_live_changed` | `{"isLive":true}` | The presentation went on or off air |
 | `presentation_auto_scroll_changed` | `{"autoScrollInterval":5}` (seconds) | The auto-advance interval changed |
 | `presentation_looping_changed` | `{"looping":true}` | Looping was switched |
-| `live_state_changed` | `LiveStateDto`: `contentType` plus the fields of what is live (verse, song section — with `sectionLabel`, the live section's header such as `"Chorus 1"` — picture, media, announcement, website, scene, Q&A, dictionary, lower third), `liveSlide`, `overlays`, `message`, `messageDurationSeconds`, `props` | On connect (if any) + whenever what is on air changes |
+| `live_state_changed` | `LiveStateDto`: `contentType` plus the fields of what is live (verse, song section — with `sectionLabel`, the live section's header such as `"Chorus 1"`, and `songAlias`, what the output shows in place of the number such as `"Ch 25"` — picture, media, announcement, website, scene, Q&A, dictionary, lower third), `liveSlide`, `overlays`, `message`, `messageDurationSeconds`, `props` | On connect (if any) + whenever what is on air changes |
 | `media_state_changed` | `{"isLive","isLoaded","isPlaying","title","positionMs","durationMs","volume","muted","mediaType","source"}` | Sent by the desktop on a fixed cadence, so the position ticks |
 | `command_ack` | `{"commandId","ok","reason"}` | In answer to a command that carried a `commandId` |
 

@@ -23,7 +23,9 @@ import org.churchpresenter.core.models.songs.LyricSection
 import org.churchpresenter.core.models.songs.SectionTranslation
 import org.churchpresenter.core.models.text.TextOutline
 import org.churchpresenter.settings.AppSettings
-import org.churchpresenter.settings.songLanguageSelection
+import org.churchpresenter.settings.languageDisplayOrder
+import org.churchpresenter.settings.songLanguagePicks
+import org.churchpresenter.settings.titleSlideHidesBackground
 import org.churchpresenter.settings.utils.Constants
 import org.churchpresenter.settings.SongSettings
 
@@ -62,6 +64,10 @@ internal class SongLook(
     // When languageOverride is set by the per-screen songMode, use it instead of the global setting.
     val isKey = outputRole == Constants.OUTPUT_ROLE_KEY
     val ss = appSettings.songSettings
+
+    /** The title slide, on an output whose profile draws it over no background (#1016). */
+    val titleSlideBare: Boolean =
+        lyricSection.type == Constants.SECTION_TYPE_TITLE_SLIDE && ss.titleSlideHidesBackground(isLowerThird)
     val effectiveLangDisplay = if (languageOverride.isNotBlank()) languageOverride else {
         if (lookAheadEnabled) {
             if (isLowerThird) ss.lowerThirdLookAheadLanguageDisplay else ss.lookAheadLanguageDisplay
@@ -85,7 +91,26 @@ internal class SongLook(
         lyricSection.translations.indexOfLast { it.isDrawn() },
         allLyricSections.maxOfOrNull { section -> section.translations.indexOfLast { it.isDrawn() } } ?: -1,
     ) + 2
-    val activeLanguages = songLanguageSelection(effectiveLangDisplay, languageSelection, availableLanguages)
+
+    // The selection names places in the Songs tab's display order, so this is where they become the
+    // song's own languages (#1029); each comes with the look it is drawn in.
+    val languagePicks = songLanguagePicks(
+        effectiveLangDisplay,
+        languageSelection,
+        availableLanguages,
+        ss.languageDisplayOrder(),
+        ss.layoutExtras.languageLooksFollowPlace,
+    )
+    val activeLanguages = languagePicks.map { it.slot }
+    private val lookBySlot = languagePicks.associate { it.slot to it.look }
+
+    /**
+     * The look language [slot] is drawn with on this output: its place's where looks follow the
+     * place, its own otherwise. Every style, box and move is read by this index, and every line by
+     * the slot. A slot this output does not pick is only ever drawn as the fallback for a slide with
+     * none of the picked languages in it, so it takes the first pick's look.
+     */
+    fun lookOf(slot: Int): Int = lookBySlot[slot] ?: languagePicks.firstOrNull()?.look ?: slot
 
     /**
      * The element's outline as this output draws it.
@@ -167,24 +192,13 @@ internal class SongLook(
     val songNumberFontFamily = systemFontFamilyOrDefault(
         numberStyleProfile.fontType.ifBlank { if (isLowerThird) ss.titleLowerThirdFontType else ss.titleFontType },
     )
-    val effectiveLyricsBold = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadBold else ss.lookAheadBold
-    } else if (isLowerThird) ss.lyricsLowerThirdBold else ss.lyricsBold
-    val effectiveLyricsItalic = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadItalic else ss.lookAheadItalic
-    } else if (isLowerThird) ss.lyricsLowerThirdItalic else ss.lyricsItalic
-    val effectiveLyricsUnderline = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadUnderline else ss.lookAheadUnderline
-    } else if (isLowerThird) ss.lyricsLowerThirdUnderline else ss.lyricsUnderline
-    val effectiveLyricsShadow = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadShadow else ss.lookAheadShadow
-    } else if (isLowerThird) ss.lyricsLowerThirdShadow else ss.lyricsShadow
+    val effectiveLyricsBold = if (isLowerThird) ss.lyricsLowerThirdBold else ss.lyricsBold
+    val effectiveLyricsItalic = if (isLowerThird) ss.lyricsLowerThirdItalic else ss.lyricsItalic
+    val effectiveLyricsUnderline = if (isLowerThird) ss.lyricsLowerThirdUnderline else ss.lyricsUnderline
+    val effectiveLyricsShadow = if (isLowerThird) ss.lyricsLowerThirdShadow else ss.lyricsShadow
 
-    // Which profile the body text is drawn from: the look-ahead slide styles its lines separately.
-    val lyricsStyleProfile = ss.elementStyle(
-        if (lookAheadEnabled) SongStyleElement.LOOK_AHEAD else SongStyleElement.LYRICS,
-        songTarget,
-    )
+    // The body text is the lyrics' own, with or without the look-ahead under it.
+    val lyricsStyleProfile = ss.elementStyle(SongStyleElement.LYRICS, songTarget)
     val lyricsTextStyle = TextStyle(
         fontWeight = if (effectiveLyricsBold) FontWeight.Bold else FontWeight.Normal,
         fontStyle = if (effectiveLyricsItalic) FontStyle.Italic else FontStyle.Normal,
@@ -205,11 +219,7 @@ internal class SongLook(
         else -> Alignment.Center
     }
     val lyricsHorizontalAlignment = getTextAlign(
-        if (lookAheadEnabled) {
-            if (isLowerThird) ss.lowerThirdLookAheadHorizontalAlignment else ss.lookAheadHorizontalAlignment
-        } else {
-            if (isLowerThird) ss.lyricsLowerThirdHorizontalAlignment else ss.lyricsHorizontalAlignment
-        }
+        if (isLowerThird) ss.lyricsLowerThirdHorizontalAlignment else ss.lyricsHorizontalAlignment
     )
     val titleHorizontalAlignment = getTextAlign(
         if (isLowerThird) ss.titleLowerThirdHorizontalAlignment else ss.titleHorizontalAlignment
@@ -238,20 +248,14 @@ internal class SongLookResources(
 internal fun rememberSongLookResources(
     ss: SongSettings,
     isLowerThird: Boolean,
-    lookAheadEnabled: Boolean,
     isKey: Boolean,
 ): SongLookResources {
     // Resolve font families per fullscreen / lower third
     val titleFontFamily = remember(ss.titleFontType, ss.titleLowerThirdFontType, isLowerThird) {
         systemFontFamilyOrDefault(if (isLowerThird) ss.titleLowerThirdFontType else ss.titleFontType)
     }
-    val lyricsFontFamily = remember(ss.lyricsFontType, ss.lyricsLowerThirdFontType,
-        ss.lookAheadFontType, ss.lowerThirdLookAheadFontType, isLowerThird, lookAheadEnabled) {
-        if (lookAheadEnabled) {
-            systemFontFamilyOrDefault(if (isLowerThird) ss.lowerThirdLookAheadFontType else ss.lookAheadFontType)
-        } else {
-            systemFontFamilyOrDefault(if (isLowerThird) ss.lyricsLowerThirdFontType else ss.lyricsFontType)
-        }
+    val lyricsFontFamily = remember(ss.lyricsFontType, ss.lyricsLowerThirdFontType, isLowerThird) {
+        systemFontFamilyOrDefault(if (isLowerThird) ss.lyricsLowerThirdFontType else ss.lyricsFontType)
     }
 
     // Resolve colors — key mode forces white for a proper key signal
@@ -259,14 +263,9 @@ internal fun rememberSongLookResources(
         if (isKey) Color.White
         else parseHexColor(if (isLowerThird) ss.titleLowerThirdColor else ss.titleColor)
     }
-    val lyricsColor = remember(ss.lyricsColor, ss.lyricsLowerThirdColor,
-        ss.lookAheadColor, ss.lowerThirdLookAheadColor, isLowerThird, lookAheadEnabled, isKey) {
+    val lyricsColor = remember(ss.lyricsColor, ss.lyricsLowerThirdColor, isLowerThird, isKey) {
         if (isKey) Color.White
-        else if (lookAheadEnabled) {
-            parseHexColor(if (isLowerThird) ss.lowerThirdLookAheadColor else ss.lookAheadColor)
-        } else {
-            parseHexColor(if (isLowerThird) ss.lyricsLowerThirdColor else ss.lyricsColor)
-        }
+        else parseHexColor(if (isLowerThird) ss.lyricsLowerThirdColor else ss.lyricsColor)
     }
     val chordColor = remember(ss.lyricsChordColor, ss.lyricsLowerThirdChordColor, isLowerThird, isKey) {
         if (isKey) Color.White

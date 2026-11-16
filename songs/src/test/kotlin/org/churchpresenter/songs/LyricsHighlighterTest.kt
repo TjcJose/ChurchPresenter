@@ -16,6 +16,7 @@ class LyricsHighlighterTest {
         chord = Color.Green,
         divider = Color.Gray,
         voice = Color.Magenta,
+        thirdVoice = Color.Cyan,
     )
     private val highlighter = LyricsHighlighter(inks)
 
@@ -90,6 +91,30 @@ class LyricsHighlighterTest {
         assertTrue("blind" in voiced && "now I see" in voiced, "$voiced")
         assertTrue(")" in voiced, "a closing bracket is a mark")
         assertTrue(voiced.none { "but" in it })
+    }
+
+    @Test
+    fun `a 3 mark, a voice-3 run and a voice-3 block take the third voice's ink`() {
+        val out = highlighter.filter(AnnotatedString("3>By grace\nLord 2>(Christ) 3>(Lord)\n[voice: 3]\nAmen")).text
+
+        fun inkOf(words: String) = out.spanStyles.firstOrNull { out.text.substring(it.start, it.end) == words }?.item
+        assertEquals(Color.Cyan, inkOf("By grace")?.color)
+        assertEquals(Color.Cyan, inkOf("3>")?.color, "the mark is drawn in its voice's ink")
+        assertEquals(Color.Magenta, inkOf("Christ")?.color)
+        assertEquals(Color.Cyan, inkOf("Lord")?.color)
+        assertEquals(Color.Cyan, inkOf("Amen")?.color)
+    }
+
+    @Test
+    fun `a coloured line, run and block are drawn in their own colour`() {
+        val out = highlighter.filter(AnnotatedString("#0000FF>Groom\nAll #FF0000>(Bride)\n[color: #00FF00]\nRing")).text
+
+        fun inkOf(words: String) = out.spanStyles.firstOrNull { out.text.substring(it.start, it.end) == words }?.item
+        assertEquals(Color(0xFF0000FF), inkOf("Groom")?.color)
+        assertEquals(Color(0xFF0000FF), inkOf("#0000FF>")?.color, "the mark is drawn in its colour")
+        assertEquals(Color(0xFFFF0000), inkOf("Bride")?.color)
+        assertEquals(Color.Gray, inkOf("[color: #00FF00]")?.color, "a directive reads as one")
+        assertEquals(Color(0xFF00FF00), inkOf("Ring")?.color)
     }
 
     @Test

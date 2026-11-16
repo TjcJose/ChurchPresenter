@@ -4,6 +4,8 @@ import org.churchpresenter.core.models.songs.SongFileParser
 import org.churchpresenter.core.models.songs.SongBackground
 import org.churchpresenter.core.models.songs.SongFileName
 import org.churchpresenter.core.models.songs.SongItem
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 private const val SONG_NUMBER_DIGITS = 4
@@ -56,6 +58,19 @@ internal fun SongsViewModel.deleteIfEmpty(dir: File?) {
     if (dir.isDirectory && dir.listFiles()?.isEmpty() == true) dir.delete()
 }
 
+/**
+ * Runs [edit] -- one of the edits below, which read, write, move and delete song files -- on the IO
+ * dispatcher, and hands what it returned to [onDone] back on the view model's own dispatcher. The
+ * editor and the Songs tab call this rather than an edit directly: a song folder on a cloud-synced
+ * or network drive takes seconds to write, and the window froze for all of it.
+ */
+fun <T> SongsViewModel.editInBackground(edit: SongsViewModel.() -> T, onDone: (T) -> Unit = {}) {
+    viewModelScope.launch {
+        val result = withContext(ioDispatcher) { edit() }
+        onDone(result)
+    }
+}
+
 fun SongsViewModel.updateSong(
     oldSong: SongItem,
     newSong: SongItem
@@ -77,12 +92,13 @@ fun SongsViewModel.updateSong(
         val saved = songsDataState.value.saveSongToFile(oldSong, songToSave, storageDir)
 
         if (saved) {
-            // Remember which song to re-select after async reload
+            // Re-selected by applyFilters once the list is shown again.
             pendingSelectSourceFile = songToSave.sourceFile
-            // Reload songs to reflect changes
-            loadSongs()
-            // Re-apply current filters to update the filtered list
-            applyFilters()
+            // The library in memory already holds the edit: show it now, rather than re-reading
+            // every song file to find the one just written -- seconds to minutes on a large library.
+            // The folder watcher still notices the write and checks the folder behind it.
+            val edited = songsDataState.value
+            viewModelScope.launch { applySongList(edited.getSongs(), edited) }
             return true
         }
 

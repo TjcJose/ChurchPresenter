@@ -1,10 +1,11 @@
 package org.churchpresenter.songs
 
+import org.churchpresenter.theme.semantic
+import org.churchpresenter.songchords.SecondVoice
 import androidx.compose.foundation.ExperimentalFoundationApi
 import org.churchpresenter.sharedui.guide.GuideTargets
 import org.churchpresenter.sharedui.guide.guideTarget
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,27 +13,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,7 +39,6 @@ import org.churchpresenter.sharedui.composables.PaneTab
 import org.churchpresenter.sharedui.composables.PaneTabRow
 import org.churchpresenter.sharedui.composables.SectionInk
 import org.churchpresenter.sharedui.composables.SongSectionKind
-import org.churchpresenter.sharedui.utils.defaultSongLanguageName
 import org.churchpresenter.songchords.ChordSheetImporter
 import org.churchpresenter.songchords.ChordTransposer
 import org.churchpresenter.strings.generated.resources.Res
@@ -59,13 +52,18 @@ import org.churchpresenter.strings.generated.resources.song_chords
 import org.churchpresenter.strings.generated.resources.song_chords_toggle
 import org.churchpresenter.strings.generated.resources.song_insert_section
 import org.churchpresenter.strings.generated.resources.song_insert_slide_break
-import org.churchpresenter.strings.generated.resources.song_language_name_hint
 import org.churchpresenter.strings.generated.resources.song_pane_lyrics
 import org.churchpresenter.strings.generated.resources.song_syntax
 import org.churchpresenter.strings.generated.resources.song_syntax_chord_hint
-import org.churchpresenter.strings.generated.resources.song_translation_label
 import org.churchpresenter.strings.generated.resources.song_insert_second_voice
 import org.churchpresenter.strings.generated.resources.song_insert_second_voice_hint
+import org.churchpresenter.strings.generated.resources.song_insert_third_voice
+import org.churchpresenter.strings.generated.resources.song_insert_color
+import org.churchpresenter.strings.generated.resources.song_insert_color_hint
+import org.churchpresenter.songchords.VoiceKey
+import org.churchpresenter.sharedui.composables.ColorPickerDialog
+import org.churchpresenter.strings.generated.resources.song_insert_third_voice_hint
+import org.churchpresenter.strings.generated.resources.song_language_names_where
 import org.churchpresenter.theme.AppShape
 import org.churchpresenter.theme.components.RaisedSwitch
 import org.churchpresenter.theme.elevationPalette
@@ -73,34 +71,27 @@ import org.churchpresenter.theme.raisedHover
 import org.jetbrains.compose.resources.stringResource
 
 private const val CHORD_PREVIEW_SCALE = 0.75f
-private val LANGUAGE_NAME_FIELD_WIDTH = 220.dp
-
-/** Test handle for the open pane's language-name field. */
-internal const val LANGUAGE_NAME_FIELD_TAG = "song_editor_language_name"
 
 /**
- * The editor's left-hand column: the pane tabs with the background and chord controls, the open
- * pane's language name, the section markers, the lyrics box and the syntax legend.
+ * The editor's left-hand column: the pane tabs with the background and chord controls, the section
+ * markers, the lyrics box and the syntax legend.
  */
 @Composable
 internal fun EditSongEditorColumn(
     state: EditSongState,
-    names: SongLanguageNames,
-    showLanguageNames: Boolean,
     toolbar: @Composable () -> Unit,
     modifier: Modifier,
 ) {
     Column(modifier = modifier) {
         toolbar()
 
-        if (showLanguageNames) {
-            LanguageNameField(
-                name = names.names[state.pane],
-                placeholder = defaultSongLanguageName(state.pane),
-                onNameChange = { value -> names.rename(state.pane, value) },
-                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 8.dp),
-            )
-        }
+        // Where the old name card was: names are install-wide, so they are renamed from the Songs tab.
+        Text(
+            text = stringResource(Res.string.song_language_names_where),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 8.dp),
+        )
 
         SectionMarkerChips(state)
 
@@ -134,7 +125,7 @@ internal fun EditSongEditorColumn(
 @Composable
 internal fun EditSongToolbar(
     state: EditSongState,
-    names: SongLanguageNames,
+    names: List<String>,
     backgroundButton: @Composable (SongBackgroundButtonState) -> Unit,
     onApplyBackgroundToSongbook: ((String, SongBackground, SongBackground) -> Unit)?,
     showChords: Boolean,
@@ -148,17 +139,19 @@ internal fun EditSongToolbar(
     val scopeNames = listOf(stringResource(Res.string.song_background_whole_song)) +
         sectionSlots.map { it.label.ifBlank { untitledSection } }
 
-    Row(
+    // A flow, not a row: in a narrow column the tabs take their room first, and the background
+    // button and the chords switch move to a line of their own instead of being squeezed.
+    FlowRow(
         modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         PaneTabRow {
-            val primaryName = names.names[0].trim()
+            val primaryName = names[0].trim()
                 .ifBlank { stringResource(Res.string.song_pane_lyrics) }
             PaneTab(primaryName, state.pane == 0) { state.pane = 0 }
             repeat(state.visibleTranslations) { index ->
-                val paneLabel = translationPaneLabel(index, state.languageName(index, names.names))
+                val paneLabel = translationPaneLabel(index, state.languageName(index, names))
                 PaneTab(paneLabel, state.pane == index + 1) {
                     state.pane = index + 1
                 }
@@ -173,11 +166,19 @@ internal fun EditSongToolbar(
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
-        Box(Modifier.guideTarget(GuideTargets.SONG_BACKGROUND)) {
-            backgroundButton(EditorBackgroundButtonState(state, sectionSlots, scopeNames, onApplyBackgroundToSongbook))
+        // Kept together, and pushed to the end of whichever line they land on.
+        Row(
+            modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        ) {
+            Box(Modifier.guideTarget(GuideTargets.SONG_BACKGROUND)) {
+                backgroundButton(
+                    EditorBackgroundButtonState(state, sectionSlots, scopeNames, onApplyBackgroundToSongbook),
+                )
+            }
+            ChordsToggle(on = showChords, onToggle = onToggleChords)
         }
-        ChordsToggle(on = showChords, onToggle = onToggleChords)
     }
 }
 
@@ -210,73 +211,52 @@ private fun SectionMarkerChips(state: EditSongState) {
         }
         HoverLabel(stringResource(Res.string.song_insert_second_voice_hint)) {
             InsertChip(stringResource(Res.string.song_insert_second_voice)) {
-                state.setPaneValue(toggleSecondVoice(state.paneValue))
+                state.setPaneValue(toggleVoice(state.paneValue, VoiceKey(SecondVoice.SECOND)))
             }
         }
+        HoverLabel(stringResource(Res.string.song_insert_third_voice_hint)) {
+            InsertChip(stringResource(Res.string.song_insert_third_voice)) {
+                state.setPaneValue(toggleVoice(state.paneValue, VoiceKey(SecondVoice.THIRD)))
+            }
+        }
+        ColorMarkChip(state)
     }
 }
 
 /**
- * The open pane's language name: a small card like the metadata ones, with a line saying the name
- * is not this song's alone. Blank shows [placeholder], which is what an unnamed language is called.
+ * The Color… button: words or lines in a colour of their own, for a part no voice covers. On lines
+ * already in one colour it takes the colour off; otherwise it asks for a colour and marks the
+ * selected words, or the lines the cursor is on, with it.
  */
 @Composable
-private fun LanguageNameField(
-    name: String,
-    placeholder: String,
-    onNameChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // The whole card takes the click, not just the line of text inside it: an empty field is one
-    // grey placeholder word in a box three times its height, and a click on the caption or the
-    // padding around it otherwise did nothing -- no cursor, nowhere to type.
-    val focus = remember { FocusRequester() }
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .width(LANGUAGE_NAME_FIELD_WIDTH)
-                .clip(EditSongCardShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh, EditSongCardShape)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, EditSongCardShape)
-                .clickable(interactionSource = null, indication = null) { focus.requestFocus() }
-                .pointerHoverIcon(PointerIcon.Text)
-                .padding(horizontal = 11.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-        ) {
-            CardLabel(stringResource(Res.string.song_translation_label))
-            BasicTextField(
-                value = name,
-                onValueChange = onNameChange,
-                singleLine = true,
-                textStyle = fieldValueStyle(),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag(LANGUAGE_NAME_FIELD_TAG),
-                decorationBox = { field ->
-                    Box {
-                        if (name.isEmpty()) {
-                            Text(
-                                text = placeholder,
-                                style = fieldValueStyle(),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        field()
-                    }
-                },
-            )
+private fun ColorMarkChip(state: EditSongState) {
+    var picking by remember { mutableStateOf(false) }
+    var lastColor by remember { mutableStateOf(DEFAULT_MARK_COLOR) }
+    HoverLabel(stringResource(Res.string.song_insert_color_hint)) {
+        InsertChip(stringResource(Res.string.song_insert_color)) {
+            val current = lineColorAt(state.paneValue)
+            if (current != null) {
+                state.setPaneValue(toggleVoice(state.paneValue, current))
+            } else {
+                picking = true
+            }
         }
-        Text(
-            text = stringResource(Res.string.song_language_name_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
+    }
+    if (picking) {
+        ColorPickerDialog(
+            initialHex = lastColor,
+            onDismiss = { picking = false },
+            onColorSelected = { hex ->
+                lastColor = hex
+                picking = false
+                state.setPaneValue(toggleVoice(state.paneValue, VoiceKey.color(hex)))
+            },
         )
     }
 }
+
+/** The colour the Color… button offers first, until one is picked: a rose that reads on dark and light. */
+private const val DEFAULT_MARK_COLOR = "#E91E63"
 
 /** The switch that decides whether the preview shows chords at all. */
 @Composable
@@ -293,6 +273,8 @@ private fun ChordsToggle(on: Boolean, onToggle: () -> Unit) {
             Text(
                 text = stringResource(Res.string.song_chords),
                 fontSize = 12.sp,
+                maxLines = 1,
+                softWrap = false,
                 fontWeight = FontWeight.SemiBold,
                 color = if (on) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -364,6 +346,8 @@ private fun SyntaxLegend(modifier: Modifier = Modifier) {
         LegendChip("[G]lyric", MaterialTheme.colorScheme.primary)
         LegendChip("2>line", MaterialTheme.colorScheme.tertiary)
         LegendChip("2>(words)", MaterialTheme.colorScheme.tertiary)
+        LegendChip("3>line", MaterialTheme.semantic.success)
+        LegendChip("#hex>line", MaterialTheme.colorScheme.secondary)
         Text(
             text = stringResource(Res.string.song_syntax_chord_hint),
             style = MaterialTheme.typography.bodySmall,

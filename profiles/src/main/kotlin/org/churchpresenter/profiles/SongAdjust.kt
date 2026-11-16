@@ -21,8 +21,12 @@ import org.churchpresenter.settings.withBox
  * output, the first included, when there are two or more and the element has a look per language;
  * none otherwise, since the element is then drawn the same in every language.
  */
-internal fun songLanguagesOffered(profile: OutputProfile, element: SongStyleElement): List<SongStyleLanguage> {
-    val shown = styleLanguagesFor(profile.songMode, profile.songTranslations)
+internal fun songLanguagesOffered(
+    profile: OutputProfile,
+    element: SongStyleElement,
+    song: SongSettings,
+): List<SongStyleLanguage> {
+    val shown = styleLanguagesFor(profile.songMode, profile.songTranslations, song)
     return if (shown.size > 1 && element in SECOND_LANGUAGE_ELEMENTS) shown else emptyList()
 }
 
@@ -57,7 +61,7 @@ internal fun songAdjustModel(
     val lowerThird = profile.isLowerThird
     val target = if (lowerThird) SongStyleTarget.LOWER_THIRD else SongStyleTarget.FULL_SCREEN
     val styleElement = targets.styleElement()
-    val offered = songLanguagesOffered(profile, styleElement)
+    val offered = songLanguagesOffered(profile, styleElement, song)
     val editing = targets.language.value?.takeIf { it in offered }
     val update: ((SongSettings) -> SongSettings) -> Unit = { transform ->
         onSettingsChange { s -> s.copy(songSettings = transform(s.songSettings)) }
@@ -130,7 +134,7 @@ private fun songBlockTargets(
     val editing = edit.language
     val lowerThird = profile.isLowerThird
     val titleSlide = targets.element.value == CustomizeElement.SONG_TITLE_SLIDE
-    val blocks = songBlocks(profile, titleSlide)
+    val blocks = songBlocks(profile, titleSlide, song)
     val selected = blocks.indexOfFirst {
         it.element == styleElement && (it.language == null || it.language == (editing?.translation ?: it.language))
     }.takeIf { it >= 0 }
@@ -140,7 +144,7 @@ private fun songBlockTargets(
         kind = PresentedBlock.Kind.ELEMENT,
         keys = blocks.map { it.key },
         selected = selected,
-        onSelect = { index -> blocks[index].pickIn(targets, profile) },
+        onSelect = { index -> blocks[index].pickIn(targets, profile, song) },
         shift = Adjustable(song.shiftAt(shiftKey)) { (x, y) -> update { it.shiftedAt(shiftKey, x, y) } },
     )
 }
@@ -158,7 +162,7 @@ private fun songBoxTargets(
     val song = edit.song
     val lowerThird = profile.isLowerThird
     val titleSlide = targets.element.value == CustomizeElement.SONG_TITLE_SLIDE
-    val handles = songBlocks(profile, titleSlide).mapNotNull { block ->
+    val handles = songBlocks(profile, titleSlide, song).mapNotNull { block ->
         val key = if (titleSlide) {
             song.titleSlideBoxKey(block.element, lowerThird, block.language)
         } else {
@@ -175,7 +179,7 @@ private fun songBoxTargets(
                     it.copy(layoutExtras = extras.copy(textBoxes = extras.textBoxes.withBox(key, changed)))
                 }
             },
-            onPick = { block.pickIn(targets, profile) },
+            onPick = { block.pickIn(targets, profile, song) },
         )
     }.distinctBy { it.key }
     if (handles.isEmpty()) return null
@@ -187,9 +191,9 @@ private fun songBoxTargets(
  * credits, or the number, the title, the section label and -- per language -- the lyrics, the
  * look-ahead and the next section.
  */
-private fun songBlocks(profile: OutputProfile, titleSlide: Boolean): List<SongBlock> {
+private fun songBlocks(profile: OutputProfile, titleSlide: Boolean, song: SongSettings): List<SongBlock> {
     val lowerThird = profile.isLowerThird
-    val languages = styleLanguagesFor(profile.songMode, profile.songTranslations).map { it.translation }
+    val languages = styleLanguagesFor(profile.songMode, profile.songTranslations, song).map { it.translation }
     return if (titleSlide) {
         listOf(SongBlock(SongStyleElement.TITLE_SLIDE_NUMBER, null, lowerThird, true)) +
             languages.map { SongBlock(SongStyleElement.TITLE, it, lowerThird, true) } +
@@ -199,19 +203,19 @@ private fun songBlocks(profile: OutputProfile, titleSlide: Boolean): List<SongBl
             SongBlock(SongStyleElement.NUMBER, null, lowerThird, false),
             SongBlock(SongStyleElement.TITLE, languages.first(), lowerThird, false),
             SongBlock(SongStyleElement.SECTION_LABEL, null, lowerThird, false),
-        ) + listOf(SongStyleElement.LYRICS, SongStyleElement.LOOK_AHEAD, SongStyleElement.NEXT_SECTION)
+        ) + listOf(SongStyleElement.LYRICS, SongStyleElement.NEXT_SECTION)
             .flatMap { element -> languages.map { SongBlock(element, it, lowerThird, false) } }
     }
 }
 
 /** Points the Text rows at this block's element -- and at its language, where the page offers them. */
-private fun SongBlock.pickIn(targets: SongTargets, profile: OutputProfile) {
+private fun SongBlock.pickIn(targets: SongTargets, profile: OutputProfile, song: SongSettings) {
     if (element.onTitleSlide && targets.element.value == CustomizeElement.SONG_TITLE_SLIDE) {
         targets.slideElement.onChange(element)
     } else {
         targets.element.onChange(element.customizeElement())
     }
-    val offered = songLanguagesOffered(profile, element)
+    val offered = songLanguagesOffered(profile, element, song)
     val slot = language
     if (slot != null && offered.isNotEmpty()) {
         targets.language.onChange(offered.firstOrNull { it.translation == slot })
@@ -222,7 +226,6 @@ private fun SongBlock.pickIn(targets: SongTargets, profile: OutputProfile) {
 private fun SongStyleElement.customizeElement(): CustomizeElement = when (this) {
     SongStyleElement.NUMBER -> CustomizeElement.SONG_NUMBER
     SongStyleElement.TITLE -> CustomizeElement.SONG_TITLE
-    SongStyleElement.LOOK_AHEAD -> CustomizeElement.SONG_LOOK_AHEAD
     SongStyleElement.NEXT_SECTION -> CustomizeElement.SONG_NEXT_SECTION
     SongStyleElement.SECTION_LABEL -> CustomizeElement.SONG_SECTION_LABEL
     SongStyleElement.LYRICS -> CustomizeElement.SONG_LYRICS

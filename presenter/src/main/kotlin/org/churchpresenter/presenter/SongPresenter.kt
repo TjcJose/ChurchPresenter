@@ -135,7 +135,7 @@ fun SongPresenter(
         languageOverride = languageOverride,
         languageSelection = languageSelection,
         showChords = showChords,
-        resources = rememberSongLookResources(ss, isLowerThird, lookAheadEnabled, isKey),
+        resources = rememberSongLookResources(ss, isLowerThird, isKey),
     )
     with(look) {
         // A title slide with a Lottie of its own plays it instead (#971): in the band's place on a
@@ -167,6 +167,7 @@ fun SongPresenter(
             showBackground = showBackground,
             transparentWhenBlank = LocalTransparentBlanking.current,
             ownBackground = if (isLowerThird) lyricSection.lowerThirdBackground else lyricSection.background,
+            hideOwnBackground = titleSlideBare,
         )
         // The picture is decoded only where it is drawn: on the band, or full screen when this draws
         // the background itself rather than leaving it to the background layer.
@@ -216,7 +217,7 @@ private fun SongLook.SongLottieBandLayer(loaded: BibleLottieTemplate, modifier: 
             template = loaded,
             section = lyricSection,
             settings = ss,
-            languageDisplay = effectiveLangDisplay,
+            languages = activeLanguages,
             lineIndex = LocalBandSongLineIndex.current.takeIf { it >= 0 } ?: displayLineIndex,
             outgoingSection = outgoing.lyricSection,
             outgoingLineIndex = outgoing.lyricLineIndex,

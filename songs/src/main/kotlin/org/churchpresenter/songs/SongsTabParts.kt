@@ -56,7 +56,7 @@ import org.churchpresenter.sharedui.utils.pairLabel
 import org.churchpresenter.sharedui.utils.UsageEvent
 import org.churchpresenter.sharedui.utils.UsageEvents
 import org.churchpresenter.settings.languageLabel
-import org.churchpresenter.settings.withLanguageNames
+import org.churchpresenter.settings.withLanguageName
 import org.churchpresenter.settings.moveSongLanguageAmong
 import org.churchpresenter.core.models.songs.MAX_SONG_TRANSLATIONS
 import org.jetbrains.compose.resources.stringResource
@@ -351,18 +351,18 @@ private fun SongsTabController.SongLyricsSide(row: RowScope) = with(row) {
         onMoveLanguage = { available, index, offset ->
             onSettingsChange { s -> s.moveSongLanguageAmong(available, index, offset) }
         },
+        onRenameLanguage = { slot, name ->
+            onSettingsChange { s -> s.copy(songSettings = s.songSettings.withLanguageName(slot, name)) }
+        },
     )
 }
 
 /** The song editor, for the song being edited and for a new one; the app draws it. */
 @Composable
 internal fun SongsTabController.SongEditorDialogs() {
-    // What the song's languages are called install-wide -- named in the editor, read by the
+    // What the song's languages are called install-wide -- named from the Languages menu, read by the
     // profiles' song languages and the output language switch.
     val songLanguageNames = List(MAX_SONG_TRANSLATIONS) { appSettings.songSettings.languageLabel(it) }
-    val onLanguageNamesChange: (List<String>) -> Unit = { names ->
-        onSettingsChange { s -> s.copy(songSettings = s.songSettings.withLanguageNames(names)) }
-    }
     val onChordsVisibleChange: (Boolean) -> Unit = { visible ->
         onSettingsChange { s -> s.copy(songSettings = s.songSettings.copy(editorShowChords = visible)) }
     }
@@ -379,21 +379,21 @@ internal fun SongsTabController.SongEditorDialogs() {
             typicalSeconds = dialogs.editing?.let(typicalSongSeconds),
             onChordsVisibleChange = onChordsVisibleChange,
             onApplyBackgroundToSongbook = { songbook, background, lowerThirdBackground ->
-                viewModel.applyBackgroundToSongbook(songbook, background, lowerThirdBackground)
+                viewModel.editInBackground({ applyBackgroundToSongbook(songbook, background, lowerThirdBackground) })
             },
             languageNames = songLanguageNames,
-            onLanguageNamesChange = onLanguageNamesChange,
             onDismiss = { dialogs.closeEditor() },
             onSave = { updatedSong, tuning ->
                 dialogs.editing?.let { oldSong ->
                     val wasLive = isPresenting && live.songId == oldSong.songId
-                    val success = viewModel.updateSong(oldSong, updatedSong)
-                    if (success) {
-                        UsageEvents.record(UsageEvent.SONG_EDITED)
-                        onSettingsChange { s -> s.withTuning(updatedSong.songId, tuning) }
-                        dialogs.closeEditor()
-                        dialogs.closeEditor()
-                        if (wasLive) sendEditedSongToPresenter(updatedSong, tuning)
+                    viewModel.editInBackground({ updateSong(oldSong, updatedSong) }) { success ->
+                        if (success) {
+                            UsageEvents.record(UsageEvent.SONG_EDITED)
+                            onSettingsChange { s -> s.withTuning(updatedSong.songId, tuning) }
+                            dialogs.closeEditor()
+                            dialogs.closeEditor()
+                            if (wasLive) sendEditedSongToPresenter(updatedSong, tuning)
+                        }
                     }
                 }
             },
@@ -425,16 +425,16 @@ internal fun SongsTabController.SongEditorDialogs() {
             typicalSeconds = dialogs.editing?.let(typicalSongSeconds),
             onChordsVisibleChange = onChordsVisibleChange,
             languageNames = songLanguageNames,
-            onLanguageNamesChange = onLanguageNamesChange,
             onDismiss = { dialogs.closeNew() },
             onSave = { newSong, tuning ->
-                val success = viewModel.createSong(newSong)
-                if (success) {
-                    onSettingsChange { s ->
-                        val remembered = s.copy(newSongSongbook = newSong.songbook)
-                        if (tuning != SongTuning()) remembered.withTuning(newSong.songId, tuning) else remembered
+                viewModel.editInBackground({ createSong(newSong) }) { success ->
+                    if (success) {
+                        onSettingsChange { s ->
+                            val remembered = s.copy(newSongSongbook = newSong.songbook)
+                            if (tuning != SongTuning()) remembered.withTuning(newSong.songId, tuning) else remembered
+                        }
+                        dialogs.closeNew()
                     }
-                    dialogs.closeNew()
                 }
             },
         )
@@ -468,7 +468,7 @@ internal fun SongsTabController.DeleteSongDialog() {
                     GhostButton(
                         shape = AppShape(6.dp),
                         onClick = {
-                        viewModel.deleteSong(s)
+                        viewModel.editInBackground({ deleteSong(s) })
                         dialogs.closeDelete()
                     }) {
                         Text(stringResource(Res.string.delete_saved_string), color = MaterialTheme.colorScheme.error)

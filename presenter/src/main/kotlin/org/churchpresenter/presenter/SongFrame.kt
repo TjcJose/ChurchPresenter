@@ -59,6 +59,7 @@ internal class SongFrame(
     val isKey get() = look.isKey
     val ss get() = look.ss
     val activeLanguages get() = look.activeLanguages
+    fun lookOf(slot: Int): Int = look.lookOf(slot)
     val laFontSize get() = look.laFontSize
     val laBold get() = look.laBold
     val laItalic get() = look.laItalic
@@ -148,9 +149,7 @@ internal class SongFrame(
         )) else lyricsTextStyle
     private val effectiveTitleFontSize = if (isLowerThird) ss.titleLowerThirdFontSize else ss.titleFontSize
     val scaledTitleFontSize = (effectiveTitleFontSize * scaleFactor).sp
-    val settingsLyricsFontSize = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadFontSize else ss.lookAheadFontSize
-    } else if (isLowerThird) {
+    val settingsLyricsFontSize = if (isLowerThird) {
         appSettings.songSettings.lyricsLowerThirdFontSize
     } else {
         appSettings.songSettings.lyricsFontSize
@@ -166,11 +165,7 @@ internal class SongFrame(
 
     // Empty unless each language is fitted on its own -- see `fitLanguagesSeparately`.
     val languageFitSizes = songFit?.perLanguage.orEmpty()
-    val autoFitEnabled = if (lookAheadEnabled) {
-        if (isLowerThird) ss.lowerThirdLookAheadFontSizeAutoFit else ss.lookAheadFontSizeAutoFit
-    } else {
-        if (isLowerThird) ss.lyricsLowerThirdFontSizeAutoFit else ss.lyricsFontSizeAutoFit
-    }
+    val autoFitEnabled = if (isLowerThird) ss.lyricsLowerThirdFontSizeAutoFit else ss.lyricsFontSizeAutoFit
     val effectiveLyricsFontSize = if (autoFitEnabled) {
         (autoFitFontSize ?: settingsLyricsFontSize).coerceAtMost(settingsLyricsFontSize)
     } else settingsLyricsFontSize
@@ -231,6 +226,9 @@ internal fun BoxWithConstraintsScope.SongFrameContent(look: SongLook, backdrop: 
             isLowerThird,
             lookAheadEnabled,
             languageOverride,
+            // What is drawn and in which look: a language move changes these without changing
+            // the profile that asked for them.
+            languagePicks,
             appSettings.songSettings,
             appSettings.projectionSettings,
             // The fit now measures against the real output's own aspect ratio (see referenceBoxWidth/
@@ -248,7 +246,7 @@ internal fun BoxWithConstraintsScope.SongFrameContent(look: SongLook, backdrop: 
         }
     }
     val frame = SongFrame(look, backdrop, blurRadius, maxWidth, maxHeight, songFit)
-    if (look.isLowerThird) SongLowerThirdBand(frame)
+    if (look.isLowerThird && !frame.resolvedBg.bare) SongLowerThirdBand(frame)
     frame.SongTextArea()
 }
 

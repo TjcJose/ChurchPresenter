@@ -5,6 +5,7 @@ import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import kotlinx.serialization.decodeFromString
+import org.churchpresenter.core.models.io.LatestWriteQueue
 import org.churchpresenter.settings.AppSettings.Companion.CURRENT_SETTINGS_VERSION
 import org.churchpresenter.settings.utils.AppDataDir
 import kotlinx.serialization.encodeToString
@@ -24,12 +25,29 @@ private const val VERSION_PREVIEW_LAYOUTS = 20
 /** Version 25: the Signage tab came out of dev mode and starts hidden, as STT does. */
 private const val VERSION_SIGNAGE_TAB = 25
 
+/** Version 26: a profile's song languages became places in the display order (#1029). */
+private const val VERSION_SONG_LANGUAGE_PLACES = 26
+
+/** Version 27: a look-ahead output's current lines are styled by Lyrics, not a style of their own. */
+private const val VERSION_LOOK_AHEAD_INTO_LYRICS = 27
+
 // Load, migrate, save, import and export, all against one file. The per-version steps it runs are
 // in
 // the Settings*Migrations.kt files beside it, the repairs in SettingsRepair.kt and the backups in
 // SettingsBackups.kt.
-class SettingsManager {
-    private val appDataDir = AppDataDir.resolve()
+class SettingsManager internal constructor(
+    private val writer: LatestWriteQueue,
+    private val appDataDir: File,
+) {
+    /** The app's settings, saved through its one background writer -- see [LatestWriteQueue]. */
+    constructor() : this(LatestWriteQueue.shared, AppDataDir.resolve())
+
+    /**
+     * Settings kept in [appDataDir] rather than the app data folder: for a test that must not
+     * share the one file with every other test in its JVM, whose saves land in the background.
+     */
+    constructor(appDataDir: File) : this(LatestWriteQueue.shared, appDataDir)
+
     private val settingsFile = File(appDataDir, "settings.json")
     private val settingsTmpFile = File(appDataDir, "settings.json.tmp")
     val lottiePresetsDir: File = File(appDataDir, "lottie_presets")
@@ -118,6 +136,8 @@ class SettingsManager {
     fun loadSettings(): AppSettings {
         cachedSettings?.let { return it }
         pruneBackupsOnce(appDataDir)
+        // A save still on its way to disk -- from this manager or another -- lands before the read.
+        writer.flush(settingsFile)
         return try {
             if (settingsFile.exists()) {
                 val raw = settingsFile.readText()
@@ -190,6 +210,8 @@ class SettingsManager {
             // so without this every existing install would open with a tab nobody asked for.
             settings = settings.copy(hiddenTabs = settings.hiddenTabs + "SIGNAGE")
         }
+        if (fromVersion < VERSION_SONG_LANGUAGE_PLACES) settings = migrateSongLanguagesToPlaces(settings)
+        if (fromVersion < VERSION_LOOK_AHEAD_INTO_LYRICS) settings = migrateLookAheadIntoLyrics(settings)
         // The primary/secondary-bible output shorthand ("primary"/"secondary" bibleMode, converted
         // to a position in the stack) used to be migrated here as a typed, per-[ScreenAssignment]
         // step gated on `fromVersion < 6`. An output no longer carries `bibleMode` at all -- that
@@ -202,8 +224,20 @@ class SettingsManager {
     /** Keeps the newest few of each settings-backup family -- see [pruneBackupsOnce]. */
     internal fun pruneBackups() = pruneBackups(appDataDir)
 
+    /**
+     * Makes [settings] the current settings at once and writes them to disk on the settings writer,
+     * off the caller's thread: encoding and stripping the document takes seconds on a slow machine.
+     * A newer save replaces one not yet written. [flushSettings] waits for the write.
+     */
     fun saveSettings(settings: AppSettings) {
         cachedSettings = settings
+        writer.submit(settingsFile) { writeSettings(settings) }
+    }
+
+    /** Blocks until every save so far is on disk. Never call it on the event thread. */
+    fun flushSettings() = writer.flush(settingsFile)
+
+    private fun writeSettings(settings: AppSettings) {
         try {
             val json = stripProfileOwnedStyling(settingsJson.encodeToString(settings))
             // Write to a temp file first, then atomically swap it into place — a process kill
@@ -226,6 +260,13 @@ class SettingsManager {
     }
 
     companion object {
+        /**
+         * Blocks until every settings save in this process is on disk. A relaunch calls it before
+         * starting the new process, which would otherwise read the file before the old one's
+         * shutdown hook writes it.
+         */
+        fun flushAllSaves() = LatestWriteQueue.shared.flushAll()
+
         /**
          * The band templates folder under [appDataDir], for a caller with no manager at hand —
          * the per-output customise dialog sits several composables away from the one that has it.
