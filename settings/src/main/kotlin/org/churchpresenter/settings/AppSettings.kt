@@ -77,6 +77,10 @@ data class AppSettings(
      * always visible, instead of the hover overlay that paints over the title's right-hand end.
      */
     val scheduleLegacyRowActions: Boolean = false,
+    /** Schedule rows draw a picture of a picture, deck or video in place of their type chip (#1050). */
+    val scheduleThumbnails: Boolean = false,
+    /** The Schedule marks the row that is on screen (#1049). */
+    val scheduleHighlightLive: Boolean = false,
     /**
      * How large the schedule toolbar's icons are drawn, by `ScheduleToolbarIconSize` name. A name
      * this build does not know falls back to the smallest, which is the size they always had.
@@ -154,9 +158,17 @@ data class AppSettings(
     // The song list's Order column width, in dp. Here rather than in SongSettings, which is at the
     // JVM's limit on constructor parameters.
     val songColWidthOrder: Int = 150,
+    // The song list's Alias column width, in dp -- here for the same reason.
+    val songColWidthAlias: Int = 70,
+    /**
+     * The language slots -- `0` the primary -- the Songs tab's lyrics panel leaves out, as the eye in
+     * its Languages menu sets them. The operator's view only: no output reads this, so hiding a
+     * language here never changes what is on a screen. Read through [panelLanguageSlots].
+     */
+    val songPanelHiddenLanguages: List<Int> = emptyList(),
     val songHiddenCols: Set<String> = setOf(
         SongColumnId.TUNE, SongColumnId.PLAY_COUNT, SongColumnId.AUTHOR, SongColumnId.COMPOSER,
-        SongColumnId.ORDER,
+        SongColumnId.ORDER, SongColumnId.ALIAS,
     ),
     val setupWizardShown: Boolean = false,
     val analyticsReportingEnabled: Boolean = true,

@@ -34,10 +34,13 @@ import org.churchpresenter.lottiegen.ui.components.ColorPickerRow
 import org.churchpresenter.lottiegen.ui.components.DeleteIconButton
 import org.churchpresenter.lottiegen.ui.components.HiddenFieldWarning
 import org.churchpresenter.lottiegen.ui.components.LottieDropdown
+import org.churchpresenter.lottiegen.ui.components.LottieFloatField
+import org.churchpresenter.lottiegen.ui.components.LottieIntField
 import org.churchpresenter.lottiegen.ui.components.LottieTextField
 import org.churchpresenter.lottiegen.ui.components.SectionCard
 import org.churchpresenter.lottiegen.ui.components.SubtleButton
 import org.churchpresenter.lottiegen.ui.components.ScrollingMenuItems
+import org.churchpresenter.theme.components.AppExposedDropdownMenu
 
 /** A field's own "Hide X" checkbox is checked, so it won't render. */
 private fun fieldHiddenTooltip(hideCheckboxLabel: String): String =
@@ -106,7 +109,7 @@ private fun TextShapingRow(viewModel: LottieGenState) {
             modifier = Modifier.fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
-        ExposedDropdownMenu(expanded, { expanded = false }) {
+        AppExposedDropdownMenu(expanded, { expanded = false }) {
             TextShaping.entries.forEach { mode ->
                 DropdownMenuItem(
                     { Text(Strings.bandEnumLabel("shaping", mode.key)) },
@@ -143,7 +146,7 @@ private fun FontAndSizeRows(viewModel: LottieGenState, fontPicker: BandFontPicke
                     modifier = Modifier.fillMaxWidth()
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
-                ExposedDropdownMenu(fontExpanded, { fontExpanded = false }) {
+                AppExposedDropdownMenu(fontExpanded, { fontExpanded = false }) {
                     ScrollingMenuItems(LottieFont.entries.size + systemFontNames.size) {
                         LottieFont.entries.forEach { font ->
                             DropdownMenuItem(
@@ -170,48 +173,37 @@ private fun FontAndSizeRows(viewModel: LottieGenState, fontPicker: BandFontPicke
                 }
             }
         }
-        LottieTextField(
-            value = cfg.baseSize.toString(),
-            onValueChange = { v ->
-                v.toIntOrNull()?.let {
-                    viewModel.updateConfig { c ->
-                        c.copy(baseSize = it.coerceIn(MIN_BASE_SIZE, MAX_BASE_SIZE))
-                    }
-                }
-            },
+        LottieIntField(
             label = Strings.baseSize,
-            modifier = Modifier.weight(1f), fillWidth = true, singleLine = true
+            value = cfg.baseSize,
+            onCommit = { s -> viewModel.updateConfig { c -> c.copy(baseSize = s) } },
+            range = MIN_BASE_SIZE..MAX_BASE_SIZE,
+            modifier = Modifier.weight(1f), fillWidth = true
         )
     }
     FieldRow {
-        LottieTextField(
-            value = cfg.nameSize.toString(),
-            onValueChange = { v ->
-                v.toFloatOrNull()?.let {
-                    viewModel.updateConfig { c -> c.copy(nameSize = it.coerceIn(MIN_TEXT_EM, MAX_TEXT_EM)) }
-                }
-            },
-            label = Strings.nameSize, modifier = Modifier.weight(1f), fillWidth = true, singleLine = true
+        LottieFloatField(
+            label = Strings.nameSize,
+            value = cfg.nameSize,
+            onCommit = { s -> viewModel.updateConfig { c -> c.copy(nameSize = s) } },
+            range = MIN_TEXT_EM..MAX_TEXT_EM,
+            modifier = Modifier.weight(1f), fillWidth = true
         )
-        LottieTextField(
-            value = cfg.infoSize.toString(),
-            onValueChange = { v ->
-                v.toFloatOrNull()?.let {
-                    viewModel.updateConfig { c -> c.copy(infoSize = it.coerceIn(MIN_TEXT_EM, MAX_TEXT_EM)) }
-                }
-            },
-            label = Strings.infoSize, modifier = Modifier.weight(1f), fillWidth = true, singleLine = true
+        LottieFloatField(
+            label = Strings.infoSize,
+            value = cfg.infoSize,
+            onCommit = { s -> viewModel.updateConfig { c -> c.copy(infoSize = s) } },
+            range = MIN_TEXT_EM..MAX_TEXT_EM,
+            modifier = Modifier.weight(1f), fillWidth = true
         )
     }
     FieldRow {
-        LottieTextField(
-            value = cfg.detailSize.toString(),
-            onValueChange = { v ->
-                v.toFloatOrNull()?.let {
-                    viewModel.updateConfig { c -> c.copy(detailSize = it.coerceIn(MIN_TEXT_EM, MAX_TEXT_EM)) }
-                }
-            },
-            label = Strings.detailSize, modifier = Modifier.weight(1f), fillWidth = true, singleLine = true
+        LottieFloatField(
+            label = Strings.detailSize,
+            value = cfg.detailSize,
+            onCommit = { s -> viewModel.updateConfig { c -> c.copy(detailSize = s) } },
+            range = MIN_TEXT_EM..MAX_TEXT_EM,
+            modifier = Modifier.weight(1f), fillWidth = true
         )
         Box(Modifier.weight(1f))
     }
@@ -232,7 +224,7 @@ private fun WeightRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(nwExpanded, { nwExpanded = false }) {
+            AppExposedDropdownMenu(nwExpanded, { nwExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.bold) },
                     { viewModel.updateConfig { it.copy(nameWeight = 700) }; nwExpanded = false },
@@ -252,7 +244,7 @@ private fun WeightRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(iwExpanded, { iwExpanded = false }) {
+            AppExposedDropdownMenu(iwExpanded, { iwExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.normal) },
                     { viewModel.updateConfig { it.copy(infoWeight = 400) }; iwExpanded = false },
@@ -281,7 +273,7 @@ private fun CaseRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(ntExpanded, { ntExpanded = false }) {
+            AppExposedDropdownMenu(ntExpanded, { ntExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.uppercase) },
                     { viewModel.updateConfig { it.copy(nameTransform = "uppercase") }; ntExpanded = false },
@@ -301,7 +293,7 @@ private fun CaseRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(itExpanded, { itExpanded = false }) {
+            AppExposedDropdownMenu(itExpanded, { itExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.none) },
                     { viewModel.updateConfig { it.copy(infoTransform = "none") }; itExpanded = false },
@@ -330,7 +322,7 @@ private fun DetailWeightAndCaseRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(dwExpanded, { dwExpanded = false }) {
+            AppExposedDropdownMenu(dwExpanded, { dwExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.normal) },
                     { viewModel.updateConfig { it.copy(detailWeight = 400) }; dwExpanded = false },
@@ -350,7 +342,7 @@ private fun DetailWeightAndCaseRow(viewModel: LottieGenState) {
                 modifier = Modifier.fillMaxWidth()
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
-            ExposedDropdownMenu(dtExpanded, { dtExpanded = false }) {
+            AppExposedDropdownMenu(dtExpanded, { dtExpanded = false }) {
                 DropdownMenuItem(
                     { Text(Strings.none) },
                     { viewModel.updateConfig { it.copy(detailTransform = "none") }; dtExpanded = false },

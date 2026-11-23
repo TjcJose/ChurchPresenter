@@ -43,16 +43,24 @@ internal fun SongsViewModel.applyFilters() {
         }
     } else if (query.isNotEmpty()) {
         filtered = when (filterTypeState.value) {
-            Constants.CONTAINS -> filtered.filter { song ->
-                song.searchTitles().any { "${song.number}. $it".contains(query, ignoreCase = true) } ||
-                    searchLyricsOf(song).contains(query, ignoreCase = true)
+            Constants.CONTAINS -> {
+                // The lyrics are cached lowercased: a plain contains is many times faster over a
+                // whole library than an ignoreCase one, which compared it char by char per keystroke.
+                val lowerQuery = query.lowercase()
+                filtered.filter { song ->
+                    song.searchTitles().any { "${song.number}. $it".contains(query, ignoreCase = true) } ||
+                        song.alias.contains(query, ignoreCase = true) ||
+                        searchLyricsOf(song).contains(lowerQuery)
+                }
             }
             Constants.STARTS_WITH -> filtered.filter { song ->
                 song.number.startsWith(query, ignoreCase = true) ||
+                    song.alias.startsWith(query, ignoreCase = true) ||
                     song.searchTitles().any { it.startsWith(query, ignoreCase = true) }
             }
             Constants.EXACT_MATCH -> filtered.filter { song ->
                 song.number.trim().equals(query, ignoreCase = true) ||
+                    song.alias.trim().equals(query, ignoreCase = true) ||
                     song.searchTitles().any { it.trim().equals(query, ignoreCase = true) }
             }
             else -> filtered
@@ -105,7 +113,7 @@ internal fun SongsViewModel.searchLyricsOf(song: SongItem): String {
     return lyricSearchText.getOrPut(song) { lyricSearchTextOf(song) }
 }
 
-/** [song]'s lyrics as the search reads them: every language, no chords, headers or breaks. */
+/** [song]'s lyrics as the search reads them: every language, lowercased, no chords, headers or breaks. */
 internal fun lyricSearchTextOf(song: SongItem): String =
     song.translationList().asSequence()
         .flatMap { it.lyrics.asSequence() }
@@ -113,6 +121,7 @@ internal fun lyricSearchTextOf(song: SongItem): String =
         .map { plainLyricLine(ChordTransposer.stripChords(it)) }
         .joinToString(" ")
         .replace(WHITESPACE_RUN, " ")
+        .lowercase()
 
 /**
  * Where the current search found [song] -- a title, a named section, which language -- for the
@@ -140,6 +149,12 @@ internal fun SongsViewModel.sortedBy(column: String, items: List<SongItem>): Lis
         items.sortedBy { it.number.toIntOrNull() ?: Int.MAX_VALUE }
     else
         items.sortedByDescending { it.number.toIntOrNull() ?: Int.MIN_VALUE }
+    // Natural order, like the number: "Ch 9" before "Ch 10". Songs with no alias last either way.
+    Constants.SORT_ALIAS -> items.sortedWith(
+        compareBy<SongItem> { it.alias.isBlank() }.then(
+            if (sortAscendingState.value) aliasOrder else aliasOrder.reversed()
+        )
+    )
     Constants.SORT_TITLE -> if (sortAscendingState.value)
         items.sortedBy { it.title.lowercase() }
     else

@@ -21,10 +21,10 @@ private const val CHAPTER_KEY_CHAPTER_MASK = 0xFFFFFL
 
 /**
  * Whether [e] says the file itself is not a Bible module's text -- an Office `~$` lock file or a
- * module saved in a legacy code page (CHURCH-PRESENTER-DESKTOP-9S/9T) -- rather than that loading
- * went wrong.
+ * module saved in a legacy code page (CHURCH-PRESENTER-DESKTOP-9S/9T), or a file that is gone by
+ * the time it is read (-1F2) -- rather than that loading went wrong.
  */
-internal fun isFileFault(e: Exception): Boolean = e is CharacterCodingException
+internal fun isFileFault(e: Exception): Boolean = e is CharacterCodingException || e is SpbFileMissingException
 
 data class ChapterResult(val previewIds: List<String>, val verses: List<String>)
 
@@ -102,6 +102,15 @@ class Bible {
      * Cleared at the start of every load, so it always describes the most recent one.
      */
     var loadError: BibleLoadError? = null
+        private set
+
+    /**
+     * The verse rows of the last [loadFromSpb] whose ids [Bible] could not read — see [SpbRowIssue].
+     *
+     * Those verses are missing from the module, so this is what tells the operator the file, and not
+     * the app, is why. Clean unless the module has such rows; cleared at the start of every load.
+     */
+    var rowReport: SpbRowReport = SpbRowReport.CLEAN
         private set
 
     /**
@@ -187,7 +196,7 @@ class Bible {
             partial = parsedAnything,
         )
         if (isFileFault(e)) {
-            Log.warn("Bible", "Not a UTF-8 Bible module: $resourcePath")
+            Log.warn("Bible", "Could not read Bible module $resourcePath: ${e.message}")
         } else {
             CrashReporter.reportException(e, "Loading Bible module $resourcePath")
         }
@@ -201,13 +210,18 @@ class Bible {
         operatorBible.clear()
         books.clear()
         loadError = null
+        rowReport = SpbRowReport.CLEAN
 
         // Declared out here so a failure partway through still has whatever parsed to build from.
         val state = SpbParseState()
 
         try {
             openSpbReader(resourcePath).use { r ->
-                r.forEachLine { rawLine -> parseSpbLine(rawLine.trimEnd('\r', '\n'), state) }
+                r.forEachLine { rawLine ->
+                    val line = rawLine.trimEnd('\r', '\n')
+                    state.rows.check(line)
+                    parseSpbLine(line, state)
+                }
                 // Flush last verse if using multiline format
                 flushPendingVerse(state)
             }
@@ -217,6 +231,8 @@ class Bible {
                 parsedAnything = operatorBible.isNotEmpty() || state.headerOrder.isNotEmpty(),
             )
         }
+
+        rowReport = state.rows.report()
 
         // Outside the try: on a module that stops being readable partway through, the books and
         // verses that did parse are still indexed and still shown, as far as they go.
@@ -240,6 +256,7 @@ class Bible {
         var currentCode: String? = null
         val pendingText = StringBuilder()
         var headerParsed = false
+        val rows = SpbRowChecker()
     }
 
     private fun parseSpbLine(line: String, state: SpbParseState) {

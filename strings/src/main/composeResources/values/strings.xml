@@ -23,6 +23,14 @@
     <string name="bible_load_failed_detail">%1$s — %2$s</string>
     <string name="bible_load_failed_partial_hint">Only the part that could be read is shown. Books or verses after the damaged point are missing.</string>
     <string name="bible_load_failed_report_hint">The details are in the crash report folder — attach the newest file when reporting this.</string>
+    <string name="bible_row_warning_title">Some verses are missing from this Bible</string>
+    <string name="bible_row_warning_detail">%1$s — %2$d verse(s) have a damaged ID and cannot be shown</string>
+    <string name="bible_row_warning_show">Show verses</string>
+    <string name="bible_row_warning_hide_verses">Hide verses</string>
+    <string name="bible_row_warning_more">…and %1$d more</string>
+    <string name="bible_row_warning_tooltip">%1$d verse(s) in this Bible have a damaged ID and cannot be shown. The Bible tab says which.</string>
+    <string name="bible_row_warning_hide">Hide</string>
+    <string name="bible_row_warning_never">Never remind me again</string>
     <string name="search_songs">Search songs...</string>
     <string name="song_book">Song Book</string>
     <string name="song_book_none">No song book</string>
@@ -767,6 +775,10 @@
     <string name="schedule_timing_blank">then blank</string>
     <string name="tooltip_schedule_options">Schedule Options</string>
     <string name="schedule_show_buttons_under_title">Show buttons under title</string>
+    <string name="schedule_show_thumbnails">Show thumbnails</string>
+    <string name="schedule_highlight_live">Highlight live item</string>
+    <string name="schedule_live_badge">LIVE</string>
+    <string name="schedule_left_off">Left off</string>
     <string name="schedule_option_item_count">Item Count</string>
     <string name="schedule_option_zoom">Zoom Controls</string>
     <string name="schedule_option_icon_size">Toolbar icon size</string>
@@ -1331,6 +1343,7 @@
     <string name="song_play_count">Plays</string>
     <string name="song_columns">Filter columns</string>
     <string name="song_columns_show_in_list">Show in list</string>
+    <string name="song_alias_column">Alias</string>
     <string name="bible_no_primary_title">No Primary Bible Configured</string>
     <string name="bible_no_primary_hint">Open ⚙ Settings and go to the Bible tab, then:</string>
     <string name="bible_no_primary_step1">1. Set the Bible storage directory</string>
@@ -1802,6 +1815,8 @@
     <string name="move_language_down">Move language down</string>
     <string name="song_language_names_where">Language names are set and edited in the Songs tab's Languages menu.</string>
     <string name="song_language_name_hint">Names this language in every song, and in each profile's song languages.</string>
+    <string name="song_language_panel_shown">Show in the lyrics list</string>
+    <string name="song_language_panel_hint">The eye shows or hides a language in the lyrics list here. The outputs are not affected.</string>
     <string name="song_chords">Chords</string>
     <string name="stage_monitor_show_chords">Show Chords</string>
     <string name="song_chords_toggle">Show chords in the preview</string>
@@ -2057,6 +2072,7 @@
     <string name="stage_monitor_layout_quad">Quad grid</string>
     <string name="stage_monitor_layout_top_three_below">Top / 3 below</string>
     <string name="stage_monitor_layout_top_four_below">Top / 4 below</string>
+    <string name="stage_monitor_bible_all_translations">Show all Bible translations</string>
     <string name="stage_monitor_metronome_position">Metronome Position</string>
     <string name="stage_monitor_position_top_center">Top-Center</string>
     <string name="stage_monitor_position_middle_left">Middle-Left</string>
@@ -2639,6 +2655,9 @@
     <string name="story_prompt_reassurance">Nothing is published without your OK.</string>
     <string name="menu_developer_story_prompt">Share Your Story Dialog</string>
     <string name="menu_developer_wick_intro">Wick Intro Dialog</string>
+    <string name="menu_developer_verse_fixer">Bible Verse Fixer</string>
+    <string name="verse_fixer_choose_title">Choose a Bible file</string>
+    <string name="verse_fixer_window_title">ChurchPresenter Bible Verse Fixer</string>
     <!-- Font picker -->
     <string name="font_picker_search">Search fonts…</string>
     <string name="font_picker_clear_search">Clear search</string>

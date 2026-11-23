@@ -178,6 +178,7 @@ object Constants {
 
     // Sort Columns
     const val SORT_NUMBER = "number"
+    const val SORT_ALIAS = "alias"
     const val SORT_TITLE = "title"
     const val SORT_SONGBOOK = "songbook"
     const val SORT_TUNE = "tune"
@@ -216,7 +217,13 @@ object Constants {
 
     // Audio file extensions (VLC supports all common formats)
     val AUDIO_EXTENSIONS = setOf("mp3", "wav", "flac", "aac", "ogg", "wma", "m4a", "aiff", "opus")
-    val VIDEO_EXTENSIONS = setOf("mp4", "mov", "avi", "mkv", "wmv", "flv", "webm", "m4v")
+    val VIDEO_EXTENSIONS = setOf(
+        "mp4", "mov", "avi", "mkv", "wmv", "flv", "webm", "m4v",
+        "3gp", "3g2", "mpg", "mpeg", "m2v", "ts", "mts", "m2ts", "ogv", "vob", "asf", "f4v", "divx",
+    )
+
+    /** What the Pictures tab shows from a folder. */
+    val PICTURE_EXTENSIONS = listOf("jpg", "jpeg", "png", "gif", "bmp", "webp", "heic", "heif")
 
     /** Default max media-file upload size accepted from a companion device (700 MB).
      *  Operator-overridable via AppSettings.maxMediaUploadMb. */
