@@ -20,8 +20,9 @@ import org.churchpresenter.qa.selectSort
 import org.churchpresenter.qa.typeQuestion
 import org.churchpresenter.qa.QAManager
 import kotlin.test.Test
+import androidx.compose.ui.test.onNodeWithText
 import org.churchpresenter.sharedui.screenshot.captureTo
-import org.churchpresenter.sharedui.screenshot.stackedThemes
+import org.churchpresenter.sharedui.screenshot.bothThemes
 
 /**
  * Every state of the Q&A tab, in both themes.
@@ -42,7 +43,7 @@ class QATabScreenshotTest {
         width: Dp? = null,
         rootIndex: Int = 0,
         drive: ComposeUiTest.(QAManager) -> Unit = {},
-    ) = stackedThemes(SECTION, name) { mode, file ->
+    ) = bothThemes(SECTION, name) { mode, file ->
         qaTab(settings = settings, seed = seed, width = width, themeMode = mode) { qa, _, _ ->
             drive(qa)
             waitForIdle()
@@ -67,7 +68,7 @@ class QATabScreenshotTest {
 
     /** No server means no QR code and nowhere for a phone to post — the tab says so. */
     @Test
-    fun `the server is not running`() = stackedThemes(SECTION, "no_server") { mode, file ->
+    fun `the server is not running`() = bothThemes(SECTION, "no_server") { mode, file ->
         qaTab(serverUrl = "", themeMode = mode) { _, _, _ ->
             waitForIdle()
             captureTo(file)
@@ -154,6 +155,13 @@ class QATabScreenshotTest {
         qaButton(QALabel.SHOW_QR).performClick()
         waitForIdle()
     }
+
+    @Test
+    fun `join info put on screen while waiting for questions`() =
+        shoot("session_waiting_join_on_screen", seed = { startSession("Sunday") }) {
+            onNodeWithText("Show join info on screen").performClick()
+            waitForIdle()
+        }
 
     @Test
     fun `a finished session waiting to be resumed`() = shoot("history", seed = {

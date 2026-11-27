@@ -70,6 +70,7 @@ fun MainDesktop(
     web: WebAccessState = WebAccessState(),
     onShowSettings: () -> Unit = {},
     onShowBackgroundSettings: () -> Unit = {},
+    onShowBibleSettings: () -> Unit = {},
     onSettingsChange: ((AppSettings) -> AppSettings) -> Unit = {},
     theme: ThemeMode = ThemeMode.SYSTEM,
     qaManager: QAManager? = null,
@@ -83,7 +84,7 @@ fun MainDesktop(
     val state = rememberMainDesktopState {
         CrashReporter.didCrashLastRun && appSettings.analyticsReportingEnabled
     }
-    val vms = rememberMainDesktopViewModels(appSettings, publish, link)
+    val vms = rememberMainDesktopViewModels(appSettings, publish, link, live.devMode)
     val hasCompanionTabConnections = appSettings.companionSatelliteConnections
         .any { it.showInTab && it.host.isNotBlank() }
     val visibleTabs = remember(appSettings.hiddenTabs, state.showCrosswordTab, hasCompanionTabConnections) {
@@ -107,7 +108,7 @@ fun MainDesktop(
     val scope = remember(
         hostWindow, appSettings, livePreviewAppSettings, activeQuickBackground, onQuickBackgroundPicked,
         presenterManager, statisticsManager, verseSequenceLog, live, service, publish, flows, link, web, onShowSettings,
-        onShowBackgroundSettings, onSettingsChange, theme, qaManager, onOpenLottieGen, sttManager,
+        onShowBackgroundSettings, onShowBibleSettings,onSettingsChange, theme, qaManager, onOpenLottieGen, sttManager,
         dialogDismissSignal, companionSatelliteViewModel, onRequestDeveloperMenuUnlock, signage, owned
     ) {
         MainDesktopScope(
@@ -127,6 +128,7 @@ fun MainDesktop(
             web = web,
             onShowSettings = onShowSettings,
             onShowBackgroundSettings = onShowBackgroundSettings,
+            onShowBibleSettings = onShowBibleSettings,
             onSettingsChange = onSettingsChange,
             theme = theme,
             qaManager = qaManager,

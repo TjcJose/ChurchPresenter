@@ -49,6 +49,9 @@ include(":core-models")
 // :composeApp, which wraps it in CompanionSatelliteViewModel.
 include(":companion-satellite")
 include(":theme")
+// The Hosanna theme: its own palette, used only by the composables built on it.
+// The composables built on the Hosanna theme, and on nothing else.
+include(":composables")
 // The animated lower-third generator: its own module, compiled and packaged separately, and
 // depended on by :composeApp, which opens it in a window from the Lower Third settings.
 include(":lottieGenerator")
@@ -95,6 +98,12 @@ include(":song-chords")
 
 // The Bible itself: the loaded translation, its books, verses and search.
 include(":bible")
+// The Bible editor: restore missing verses and fix typing mistakes, kept as a history beside the
+// .spb files rather than written into them. Opened from the Developer menu by :composeApp.
+include(":bible-editor")
+// The Bible editor's corrections without its window: the change model, bible-edits.json and laying
+// the corrections over a loaded Bible. Read by :bible-tab as it loads, written by :bible-editor.
+include(":bible-edits")
 
 // The Calendar Manager: the planner window that holds every planned service — the month grid, each
 // day's services and their run of show — and writes them to `calendar.json` of its own, separate

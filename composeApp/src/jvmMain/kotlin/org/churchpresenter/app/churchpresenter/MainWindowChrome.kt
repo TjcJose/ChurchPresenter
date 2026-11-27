@@ -1,5 +1,7 @@
 package org.churchpresenter.app.churchpresenter
 
+import org.churchpresenter.sharedui.guide.SettingsPage
+import org.churchpresenter.app.churchpresenter.dialogs.optionsTabIndexOf
 import org.churchpresenter.schedule.LocalShowControlEnabled
 import androidx.compose.runtime.CompositionLocalProvider
 import org.churchpresenter.schedule.LocalActionChoices
@@ -124,7 +126,7 @@ internal fun MainWindowScope.AppMenuBar() {
             onOpenStoryPrompt = { showStoryPrompt = true },
             // Shows it whether or not it has been seen, like Replay intro.
             onOpenWickIntro = { helperState.replayIntro = true },
-            onOpenVerseFixer = { showVerseFixerWindow = true },
+            onOpenBibleEditor = { showBibleEditorWindow = true },
         )
     }
 }
@@ -155,6 +157,7 @@ internal fun MainWindowScope.MainDesktopHost() {
                 verseSequenceLog = verseSequenceLog,
                 onShowSettings = { openOptionsDialog(0) },
                 onShowBackgroundSettings = { openOptionsDialog(OPTIONS_TAB_BACKGROUND) },
+                onShowBibleSettings = { openOptionsDialog(optionsTabIndexOf(SettingsPage.BIBLE)) },
                 onSettingsChange = { updateFn ->
                     appSettings = updateFn(appSettings)
                     settingsManager.saveSettings(appSettings)
@@ -201,6 +204,7 @@ private fun MainWindowScope.liveOutputCallbacks(): LiveOutputCallbacks = with(ro
         onRunMacro = ::runMacro,
         controlHub = controlHub,
         devMode = devMode,
+        bibleEditsRevision = bibleEditsRevision,
         onVerseSelected = { verses -> presenterManager.previewBus.forVerses(verses).setSelectedVerses(verses) },
         // Line mode used to push the section straight to the outputs from
         // here. That put the words on screen behind the transition driver's
@@ -262,11 +266,13 @@ private fun MainWindowScope.mainDesktopPublishers(): MainDesktopPublishers = wit
         onScheduleItemSelected = { itemId -> selectedScheduleItemId = itemId },
         onSongsLoaded = { songs ->
             helperSongCount = songs.size
+            libraryTally.songsLoaded(songs.map { it.songbook })
             helperSongs = songs
             companionServer.publishSongs(songs)
         },
         onCurrentTabChange = { tab -> helperCurrentTab = tab },
         onScenesChanged = { scenes -> scenesForInstanceLink = scenes },
+        onBibleTranslationsLoaded = { count -> libraryTally.biblesLoaded(count) },
         onBibleLoaded = { bible, translation ->
             primaryBibleForInstanceLink = bible
             companionServer.publishBible(

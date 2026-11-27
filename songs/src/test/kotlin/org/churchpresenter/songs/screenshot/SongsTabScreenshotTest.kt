@@ -22,8 +22,14 @@ import org.churchpresenter.songs.search
 import org.churchpresenter.songs.songsTab
 import org.churchpresenter.settings.utils.Constants
 import kotlin.test.Test
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import org.churchpresenter.songs.SongsLoaded
+import org.churchpresenter.sharedui.screenshot.captureComponent
 import org.churchpresenter.sharedui.screenshot.captureTo
-import org.churchpresenter.sharedui.screenshot.stackedThemes
+import org.churchpresenter.sharedui.screenshot.bothThemes
 
 class SongsTabScreenshotTest {
 
@@ -130,8 +136,9 @@ class SongsTabScreenshotTest {
         stageMonitor: Boolean = false,
         isPresenting: Boolean = false,
         panelHiddenLanguages: List<Int> = emptyList(),
+        keepHover: Boolean = false,
         drive: ComposeUiTest.(SongsViewModel) -> Unit = {},
-    ) = stackedThemes(SECTION, name) { mode, file ->
+    ) = bothThemes(SECTION, name) { mode, file ->
         songsTab(
             songs = songs ?: defaultSongs,
             songSettings = songSettings,
@@ -144,8 +151,13 @@ class SongsTabScreenshotTest {
             themeMode = mode,
         ) { vm, _ ->
             drive(vm)
-            captureTo(file)
+            captureTo(file, keepHover = keepHover)
         }
+    }
+
+    private fun ComposeUiTest.hover(text: String) {
+        onAllNodes(hasText(text))[0].performMouseInput { moveTo(center) }
+        waitForIdle()
     }
 
     private fun ComposeUiTest.clickSong(title: String) {
@@ -159,6 +171,16 @@ class SongsTabScreenshotTest {
     @Test
     fun `a song selected with its lyrics`() = shoot("song_selected") {
         clickSong("Amazing Grace")
+    }
+
+    @Test
+    fun `a row under the pointer`() = shoot("row_hovered", keepHover = true) {
+        hover("Be Thou My Vision")
+    }
+
+    @Test
+    fun `the column header under the pointer`() = shoot("header_hovered", keepHover = true) {
+        hover("Title")
     }
 
     @Test
@@ -206,7 +228,7 @@ class SongsTabScreenshotTest {
         shoot("columns_minimal", hiddenCols = setOf("songbook", "tune", "play_count", "author", "composer"))
 
     @Test
-    fun `the column picker`() = stackedThemes(SECTION, "columns_picker") { mode, file ->
+    fun `the column picker`() = bothThemes(SECTION, "columns_picker") { mode, file ->
         songsTab(hiddenCols = allColumns, themeMode = mode) { _, _ ->
             onNodeWithContentDescription("Filter columns").performClick()
             waitForIdle()
@@ -216,7 +238,7 @@ class SongsTabScreenshotTest {
 
     /** The app's default: four columns off, so they dim and Show all appears. */
     @Test
-    fun `the column picker with columns hidden`() = stackedThemes(SECTION, "columns_picker_hidden") { mode, file ->
+    fun `the column picker with columns hidden`() = bothThemes(SECTION, "columns_picker_hidden") { mode, file ->
         songsTab(themeMode = mode) { _, _ ->
             onNodeWithContentDescription("Filter columns").performClick()
             waitForIdle()
@@ -228,7 +250,7 @@ class SongsTabScreenshotTest {
     fun `searching by title`() = shoot("search_by_title") { search("Amazing") }
 
     @Test
-    fun `searching by lyrics`() = stackedThemes(SECTION, "search_by_lyrics") { mode, file ->
+    fun `searching by lyrics`() = bothThemes(SECTION, "search_by_lyrics") { mode, file ->
         songsTab(songs = withLyrics, themeMode = mode) { _, _ ->
             search("wretch like me")
             captureTo(file)
@@ -251,7 +273,7 @@ class SongsTabScreenshotTest {
     )
 
     @Test
-    fun `where each search result matched`() = stackedThemes(SECTION, "search_matches") { mode, file ->
+    fun `where each search result matched`() = bothThemes(SECTION, "search_matches") { mode, file ->
         songsTab(songs = everyMatchKind, themeMode = mode) { _, _ ->
             search("lord")
             captureTo(file)
@@ -268,7 +290,7 @@ class SongsTabScreenshotTest {
     }
 
     @Test
-    fun `the songbook picker`() = stackedThemes(SECTION, "songbook_picker") { mode, file ->
+    fun `the songbook picker`() = bothThemes(SECTION, "songbook_picker") { mode, file ->
         songsTab(themeMode = mode) { _, _ ->
             onNodeWithText("SONG BOOK", substring = true).performClick()
             waitForIdle()
@@ -277,7 +299,7 @@ class SongsTabScreenshotTest {
     }
 
     @Test
-    fun `the match-mode picker`() = stackedThemes(SECTION, "filter_mode_picker") { mode, file ->
+    fun `the match-mode picker`() = bothThemes(SECTION, "filter_mode_picker") { mode, file ->
         songsTab(themeMode = mode) { _, _ ->
             onNodeWithText("FILTER", substring = true).performClick()
             waitForIdle()
@@ -296,6 +318,20 @@ class SongsTabScreenshotTest {
 
     @Test
     fun `search with no matches`() = shoot("search_no_matches") { search("zzzznotasong") }
+
+    @Test
+    fun `no matches in a mode that reads only titles`() = shoot("search_no_matches_titles_only") {
+        onNodeWithText("FILTER", substring = true).performClick()
+        waitForIdle()
+        onNodeWithText("Starts With").performClick()
+        waitForIdle()
+        search("zzzznotasong")
+    }
+
+    @Test
+    fun `a library just loaded`() = captureComponent(SECTION, "library_loaded") {
+        Box(Modifier.size(420.dp, 260.dp)) { SongsLoaded(1248) }
+    }
 
     @Test
     fun `favourites panel`() = shoot("favourites") { vm ->
@@ -330,7 +366,7 @@ class SongsTabScreenshotTest {
     }
 
     @Test
-    fun `a song in two languages`() = stackedThemes(SECTION, "song_two_languages") { mode, file ->
+    fun `a song in two languages`() = bothThemes(SECTION, "song_two_languages") { mode, file ->
         songsTab(songs = bilingual, themeMode = mode) { _, _ ->
             clickSong("Amazing Grace")
             captureTo(file)
@@ -339,7 +375,7 @@ class SongsTabScreenshotTest {
 
     /** The language Display order opened on a two-language song, its languages named, each with its eye. */
     @Test
-    fun `the language display order`() = stackedThemes(SECTION, "language_order") { mode, file ->
+    fun `the language display order`() = bothThemes(SECTION, "language_order") { mode, file ->
         songsTab(
             songs = bilingual,
             songSettings = SongSettings(languageNames = listOf("English", "Español")),
@@ -364,7 +400,7 @@ class SongsTabScreenshotTest {
      * same columns as verse 1's.
      */
     @Test
-    fun `a song translated only in part`() = stackedThemes(SECTION, "song_two_languages_partial") { mode, file ->
+    fun `a song translated only in part`() = bothThemes(SECTION, "song_two_languages_partial") { mode, file ->
         songsTab(songs = partlyTranslated, themeMode = mode) { _, _ ->
             clickSong("Amazing Grace")
             captureTo(file)
@@ -373,7 +409,7 @@ class SongsTabScreenshotTest {
 
     /** A chorus broken across two slides, both still badged CHORUS and numbered 1/2 and 2/2. */
     @Test
-    fun `a section split across slides`() = stackedThemes(SECTION, "section_split_slides") { mode, file ->
+    fun `a section split across slides`() = bothThemes(SECTION, "section_split_slides") { mode, file ->
         songsTab(songs = splitChorus, themeMode = mode) { _, _ ->
             clickSong("Amazing Grace")
             captureTo(file)
@@ -381,12 +417,12 @@ class SongsTabScreenshotTest {
     }
 
     @Test
-    fun `an empty library`() = stackedThemes(SECTION, "empty_library") { mode, file ->
+    fun `an empty library`() = bothThemes(SECTION, "empty_library") { mode, file ->
         songsTab(songs = emptyList<SongFixture>(), themeMode = mode) { _, _ -> captureTo(file) }
     }
 
     @Test
-    fun `the right-click menu`() = stackedThemes(SECTION, "song_context_menu") { mode, file ->
+    fun `the right-click menu`() = bothThemes(SECTION, "song_context_menu") { mode, file ->
         songsTab(themeMode = mode) { _, _ ->
             onNodeWithText("Amazing Grace").performMouseInput { rightClick() }
             waitForIdle()

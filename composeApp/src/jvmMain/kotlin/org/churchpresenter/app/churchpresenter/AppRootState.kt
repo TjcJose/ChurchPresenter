@@ -1,5 +1,6 @@
 package org.churchpresenter.app.churchpresenter
 
+import org.churchpresenter.telemetry.LibraryTally
 import org.churchpresenter.signage.tab.SignageController
 import org.churchpresenter.core.models.songs.SongItem
 import org.churchpresenter.sharedui.utils.DevFlags
@@ -15,6 +16,7 @@ import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.foundation.layout.height
@@ -73,6 +75,8 @@ internal class AppRootState(
     private val secondaryDisplays: () -> List<ResolvedDisplay> = ::nonPrimaryDisplays,
     // main hands over one that has already read the file, so the first composition does not.
     val settingsManager: SettingsManager = SettingsManager(),
+    // What the launch ping counts the songs and Bibles from, as their tabs load them.
+    val libraryTally: LibraryTally = LibraryTally(),
 ) {
     var appReady by mutableStateOf(false)
     val statisticsManager = StatisticsManager()
@@ -234,7 +238,10 @@ internal class AppRootState(
     var automationArmed by mutableStateOf(true)
     var showLottieGenWindow by mutableStateOf(false)
     var showStyleEditorWindow by mutableStateOf(false)
-    var showVerseFixerWindow by mutableStateOf(false)
+    var showBibleEditorWindow by mutableStateOf(false)
+
+    /** Goes up each time the Bible editor saves, for the Bible tab to load the corrections. */
+    var bibleEditsRevision by mutableIntStateOf(0)
     var showMemoryMonitorWindow by mutableStateOf(false)
     var developerMenuUnlocked by mutableStateOf(false)
 

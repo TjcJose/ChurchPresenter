@@ -50,6 +50,8 @@ data class LiveOutputCallbacks(
     val controlHub: ControlHub? = null,
     /** Dev mode: the features not ready for production are offered -- see `AppRootState.devMode`. */
     val devMode: Boolean = false,
+    /** Goes up each time the Bible editor saves, so the Bible tab loads the corrections. */
+    val bibleEditsRevision: Int = 0,
 )
 
 /** The planned service the Schedule works against, from the calendar. */
@@ -74,6 +76,8 @@ data class ServicePlanLink(
 data class MainDesktopPublishers(
     val onSongsLoaded: ((List<SongItem>) -> Unit)? = null,
     val onBibleLoaded: ((bible: Bible, translation: String) -> Unit)? = null,
+    /** How many translations the Bible tab has loaded, each time that changes. */
+    val onBibleTranslationsLoaded: ((count: Int) -> Unit)? = null,
     /** This instance's saved Canvas scenes, re-published whenever they change — the InstanceLink
      *  follower path resolves a mirrored CANVAS live state by scene id against this list. */
     val onScenesChanged: ((List<Scene>) -> Unit)? = null,
